@@ -1,6 +1,6 @@
 use error_chain::error_chain;
 use rand;
-use std::rc::Rc;
+use std::sync::Arc;
 
 error_chain! {
   errors {
@@ -8,9 +8,9 @@ error_chain! {
       description("missing function")
       display("missing function")
     }
-    IncorrectArguments {
-      description("incorrect arguments")
-      display("incorrect arguments")
+    IncorrectArguments(name: String, expected: Vec<Type>, got: Vec<Dval>) {
+      description("Incorrect Arguments")
+      display("incorrect arguments calling {}", name)
     }
   }
 }
@@ -21,9 +21,9 @@ type FunctionDesc = (String, String, String, String, u32);
 
 #[derive(Debug)]
 pub enum Expr {
-  Let(String, Rc<Expr>, Rc<Expr>),
-  FnCall(FunctionDesc, im::Vector<Rc<Expr>>),
-  Lambda(im::Vector<String>, Rc<Expr>),
+  Let(String, Arc<Expr>, Arc<Expr>),
+  FnCall(FunctionDesc, im::Vector<Arc<Expr>>),
+  Lambda(im::Vector<String>, Arc<Expr>),
   Variable(String),
   IntLiteral(i32),
 }
@@ -31,81 +31,109 @@ pub enum Expr {
 #[derive(Debug)]
 pub enum Dval {
   DInt(i32),
-  DList(im::Vector<Rc<Dval>>),
-  DLambda(im::Vector<String>, Rc<Expr>),
+  DList(im::Vector<Arc<Dval>>),
+  DLambda(im::Vector<String>, Arc<Expr>),
   DError(Error),
+}
+
+unsafe impl Send for Dval {}
+
+#[derive(Debug)]
+pub enum Type {
+  TList(Arc<Type>),
+  TLambda,
+  TAny,
+  NamedType(String),
 }
 
 use Dval::*;
 use Expr::*;
+use Type::*;
+
+type FuncSig = Arc<dyn Fn(Vec<Dval>) -> Dval>;
 
 pub struct StdlibFunction {
-  f: Box<dyn Fn(Vec<Dval>) -> Dval>,
+  f: FuncSig,
 }
 
-type StdlibDef = std::collections::HashMap<(String, String, String, String, u32), StdlibFunction>;
+type StdlibDef = std::collections::HashMap<FunctionDesc, StdlibFunction>;
 
 struct Environment {
   functions: StdlibDef,
 }
 
 fn stdlib() -> StdlibDef {
+  fn func(
+    owner: &str,
+    lib: &str,
+    module: &str,
+    name: &str,
+    version: u32,
+    f: FuncSig,
+  ) -> (FunctionDesc, StdlibFunction) {
+    (
+      (
+        owner.to_string(),
+        lib.to_string(),
+        module.to_string(),
+        name.to_string(),
+        version,
+      ),
+      StdlibFunction { f },
+    )
+  };
   let fns = vec![
-    (
-      (
-        "dark".to_string(),
-        "stdlib".to_string(),
-        "Int".to_string(),
-        "random".to_string(),
-        0,
-      ),
-      StdlibFunction {
-        f: Box::new(|_args: Vec<Dval>| Dval::DInt(rand::random())),
-      },
+    func(
+      "dark",
+      "stdlib",
+      "Int",
+      "random",
+      0,
+      Arc::new(|_args: Vec<Dval>| Dval::DInt(rand::random())),
     ),
-    (
-      (
-        "dark".to_string(),
-        "stdlib".to_string(),
-        "List".to_string(),
-        "map".to_string(),
-        0,
-      ),
-      StdlibFunction {
-        f: Box::new(|args: Vec<Dval>| match args.as_slice() {
-          [DList(members), DLambda(_, body)] => {
-            let new_list = members
-              .iter()
-              .map(|dv| {
-                let environment = Environment {
-                  functions: stdlib(),
-                };
-                let st = im::HashMap::new();
-                Rc::new(eval(body, &st, &environment))
-              })
-              .collect();
-            DList(new_list)
-          }
-          _ => DError(Error::from(ErrorKind::IncorrectArguments)),
-        }),
-        // (
-        //   (
-        //     "dark".to_string(),
-        //     "stdlib".to_string(),
-        //     "List".to_string(),
-        //     "range".to_string(),
-        //     0,
-        //   ),
-        //   StdlibFunction {
-        //     f: Box::new(|args: Vec<Dval>| match args.as_slice() {
-        //       [DInt(start), DInt(end)] => (start..end).map(DInt),
-        //
-        //       // DList((start..end)  into_iter().map(DInt).collect())
-        //       _ => DError(CompilerError(CompilerError::IncorrectArguments)),
-        //     }),
-        //   },
-        // ),
-      },
+    func(
+      "dark",
+      "stdlib",
+      "List",
+      "map",
+      0,
+      Arc::new(|args: Vec<Dval>| match args.as_slice() {
+        [DList(members), DLambda(_, body)] => {
+          let new_list = members
+            .iter()
+            .map(|_dv| {
+              let environment = Environment {
+                functions: stdlib(),
+              };
+              let st = im::HashMap::new();
+              Arc::new(eval(body, &st, &environment))
+            })
+            .collect();
+          DList(new_list)
+        }
+        _ => DError(Error::from(ErrorKind::IncorrectArguments(
+          "List.map".to_string(),
+          vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
+          args,
+        ))),
+      }),
+      // (
+      //   (
+      //     "dark".to_string(),
+      //     "stdlib".to_string(),
+      //     "List".to_string(),
+      //     "range".to_string(),
+      //     0,
+      //   ),
+      //   StdlibFunction {
+      //     f: Arc::new(|args: Vec<Dval>| match args.as_slice() {
+      //       [DInt(start), DInt(end)] => (start..end).map(DInt),
+      //
+      //       // DList((start..end)  into_iter().map(DInt).collect())
+      //       _ => DError(CompilerError(CompilerError::IncorrectArguments)),
+      //     }),
+      //   },
+      // ),
     ),
   ];
   return fns.into_iter().collect();
@@ -145,8 +173,8 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
   }
 }
 
-pub fn stdlib_fn(module: &str, name: &str, version: u32, args: im::Vector<Rc<Expr>>) -> Rc<Expr> {
-  Rc::new(FnCall(
+pub fn stdlib_fn(module: &str, name: &str, version: u32, args: im::Vector<Arc<Expr>>) -> Arc<Expr> {
+  Arc::new(FnCall(
     (
       "dark".to_string(),
       "stdlib".to_string(),

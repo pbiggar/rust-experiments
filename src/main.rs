@@ -20,7 +20,6 @@ mod errors {
 // This only gives access within this module. Make this `pub use errors::*;`
 // instead if the types must be accessible from other modules (e.g., within
 // a `links` section).
-use errors::*;
 
 fn main() {
   if let Err(ref e) = run() {
@@ -68,33 +67,38 @@ fn alternative_main() {
 // Most functions will return the `Result` type, imported from the
 // `errors` module. It is a typedef of the standard `Result` type
 // for which the error type is always our own `Error`.
-fn run() -> Result<()> {
-  use std::rc::Rc;
+fn run() -> xk::Result<()> {
+  use std::sync::Arc;
   use xk::Expr::*;
   use xk::*;
-  let program = Rc::new(Let(
+  let program = Arc::new(Let(
     "range".to_string(),
     stdlib_fn(
       "Int",
       "range",
       0,
-      im::Vector::from(vec![Rc::new(IntLiteral(0)), Rc::new(IntLiteral(100))]),
+      im::Vector::from(vec![Arc::new(IntLiteral(0)), Arc::new(IntLiteral(100))]),
     ),
     stdlib_fn(
       "List",
       "map",
       0,
       im::Vector::from(vec![
-        Rc::new(Variable("range".to_string())),
-        Rc::new(Lambda(
+        Arc::new(Variable("range".to_string())),
+        Arc::new(Lambda(
           im::Vector::from(vec!["i".to_string()]),
-          Rc::new(IntLiteral(0)),
+          Arc::new(IntLiteral(0)),
         )),
       ]),
     ),
   ));
 
-  let result = run(&program);
-  println!("{:?}", result);
-  Ok(())
+  let result = xk::run(&program);
+  match result {
+    Dval::DError(err) => Err(err),
+    _ => {
+      println!("{:?}", result);
+      Ok(())
+    }
+  }
 }
