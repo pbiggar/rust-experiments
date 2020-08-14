@@ -13,8 +13,8 @@ extern crate error_chain;
 // this crate will `use errors::*;` to get access to everything
 // `error_chain!` creates.
 mod errors {
-  // Create the Error, ErrorKind, ResultExt, and Result types
-  error_chain! {}
+    // Create the Error, ErrorKind, ResultExt, and Result types
+    error_chain! {}
 }
 
 // This only gives access within this module. Make this `pub use errors::*;`
@@ -22,25 +22,25 @@ mod errors {
 // a `links` section).
 
 fn main() {
-  if let Err(ref e) = run() {
-    use std::io::Write;
-    let stderr = &mut ::std::io::stderr();
-    let errmsg = "Error writing to stderr";
+    if let Err(ref e) = run() {
+        use std::io::Write;
+        let stderr = &mut ::std::io::stderr();
+        let errmsg = "Error writing to stderr";
 
-    writeln!(stderr, "error: {}", e).expect(errmsg);
+        writeln!(stderr, "error: {}", e).expect(errmsg);
 
-    for e in e.iter().skip(1) {
-      writeln!(stderr, "caused by: {}", e).expect(errmsg);
+        for e in e.iter().skip(1) {
+            writeln!(stderr, "caused by: {}", e).expect(errmsg);
+        }
+
+        // The backtrace is not always generated. Try to run this example
+        // with `RUST_BACKTRACE=1`.
+        if let Some(backtrace) = e.backtrace() {
+            writeln!(stderr, "backtrace: {:?}", backtrace).expect(errmsg);
+        }
+
+        ::std::process::exit(1);
     }
-
-    // The backtrace is not always generated. Try to run this example
-    // with `RUST_BACKTRACE=1`.
-    if let Some(backtrace) = e.backtrace() {
-      writeln!(stderr, "backtrace: {:?}", backtrace).expect(errmsg);
-    }
-
-    ::std::process::exit(1);
-  }
 }
 
 // The above main gives you maximum control over how the error is
@@ -49,15 +49,15 @@ fn main() {
 // on the error object
 #[allow(dead_code)]
 fn alternative_main() {
-  if let Err(ref e) = run() {
-    use error_chain::ChainedError;
-    use std::io::Write; // trait which holds `display_chain`
-    let stderr = &mut ::std::io::stderr();
-    let errmsg = "Error writing to stderr";
+    if let Err(ref e) = run() {
+        use error_chain::ChainedError;
+        use std::io::Write; // trait which holds `display_chain`
+        let stderr = &mut ::std::io::stderr();
+        let errmsg = "Error writing to stderr";
 
-    writeln!(stderr, "{}", e.display_chain()).expect(errmsg);
-    ::std::process::exit(1);
-  }
+        writeln!(stderr, "{}", e.display_chain()).expect(errmsg);
+        ::std::process::exit(1);
+    }
 }
 
 // Use this macro to auto-generate the main above. You may want to
@@ -68,37 +68,37 @@ fn alternative_main() {
 // `errors` module. It is a typedef of the standard `Result` type
 // for which the error type is always our own `Error`.
 fn run() -> xk::Result<()> {
-  use std::sync::Arc;
-  use xk::Expr::*;
-  use xk::*;
-  let program = Arc::new(Let(
-    "range".to_string(),
-    stdlib_fn(
-      "Int",
-      "range",
-      0,
-      im::Vector::from(vec![Arc::new(IntLiteral(0)), Arc::new(IntLiteral(100))]),
-    ),
-    stdlib_fn(
-      "List",
-      "map",
-      0,
-      im::Vector::from(vec![
-        Arc::new(Variable("range".to_string())),
-        Arc::new(Lambda(
-          im::Vector::from(vec!["i".to_string()]),
-          Arc::new(IntLiteral(0)),
-        )),
-      ]),
-    ),
-  ));
+    use std::sync::Arc;
+    use xk::Expr::*;
+    use xk::*;
+    let program = Arc::new(Let(
+        "range".to_string(),
+        stdlib_fn(
+            "Int",
+            "range",
+            0,
+            im::Vector::from(vec![Arc::new(IntLiteral(0)), Arc::new(IntLiteral(100))]),
+        ),
+        stdlib_fn(
+            "List",
+            "map",
+            0,
+            im::Vector::from(vec![
+                Arc::new(Variable("range".to_string())),
+                Arc::new(Lambda(
+                    im::Vector::from(vec!["i".to_string()]),
+                    Arc::new(IntLiteral(0)),
+                )),
+            ]),
+        ),
+    ));
 
-  let result = xk::run(&program);
-  match result {
-    Dval::DError(err) => Err(err),
-    _ => {
-      println!("{:?}", result);
-      Ok(())
+    let result = xk::run(&program);
+    match result {
+        Dval::DError(err) => Err(err),
+        _ => {
+            println!("{:?}", result);
+            Ok(())
+        }
     }
-  }
 }
