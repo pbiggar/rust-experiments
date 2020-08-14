@@ -62,79 +62,61 @@ struct Environment {
   functions: StdlibDef,
 }
 
-fn stdlib() -> StdlibDef {
-  fn func(
-    owner: &str,
-    lib: &str,
-    module: &str,
-    name: &str,
-    version: u32,
-    f: FuncSig,
-  ) -> (FunctionDesc, StdlibFunction) {
+macro_rules! dfn {
+  ($module:expr, $name:expr, $body:expr) => {
     (
       (
-        owner.to_string(),
-        lib.to_string(),
-        module.to_string(),
-        name.to_string(),
-        version,
+        "dark".to_string(),
+        "stdlib".to_string(),
+        $module.to_string(),
+        $name.to_string(),
+        0,
       ),
-      StdlibFunction { f },
+      StdlibFunction { f: Arc::new($body) },
     )
   };
+}
+
+fn stdlib() -> StdlibDef {
   let fns = vec![
-    func(
-      "dark",
-      "stdlib",
-      "Int",
-      "random",
-      0,
-      Arc::new(|_args: Vec<Dval>| Dval::DInt(rand::random())),
-    ),
-    func(
-      "dark",
-      "stdlib",
-      "List",
-      "map",
-      0,
-      Arc::new(|args: Vec<Dval>| match args.as_slice() {
-        [DList(members), DLambda(_, body)] => {
-          let new_list = members
-            .iter()
-            .map(|_dv| {
-              let environment = Environment {
-                functions: stdlib(),
-              };
-              let st = im::HashMap::new();
-              Arc::new(eval(body, &st, &environment))
-            })
-            .collect();
-          DList(new_list)
-        }
-        _ => DError(Error::from(ErrorKind::IncorrectArguments(
-          "List.map".to_string(),
-          vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
-          args,
-        ))),
-      }),
-      // (
-      //   (
-      //     "dark".to_string(),
-      //     "stdlib".to_string(),
-      //     "List".to_string(),
-      //     "range".to_string(),
-      //     0,
-      //   ),
-      //   StdlibFunction {
-      //     f: Arc::new(|args: Vec<Dval>| match args.as_slice() {
-      //       [DInt(start), DInt(end)] => (start..end).map(DInt),
-      //
-      //       // DList((start..end)  into_iter().map(DInt).collect())
-      //       _ => DError(CompilerError(CompilerError::IncorrectArguments)),
-      //     }),
-      //   },
-      // ),
-    ),
+    dfn!("Int", "random", |_args| Dval::DInt(rand::random())),
+    dfn!("List", "map", |args: Vec<Dval>| match args.as_slice() {
+      [DList(members), DLambda(_, body)] => {
+        let new_list = members
+          .iter()
+          .map(|_dv| {
+            let environment = Environment {
+              functions: stdlib(),
+            };
+            let st = im::HashMap::new();
+            Arc::new(eval(body, &st, &environment))
+          })
+          .collect();
+        DList(new_list)
+      }
+      _ => DError(Error::from(ErrorKind::IncorrectArguments(
+        "List.map".to_string(),
+        vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
+        args,
+      ))),
+    }),
+    // (
+    //   (
+    //     "dark".to_string(),
+    //     "stdlib".to_string(),
+    //     "List".to_string(),
+    //     "range".to_string(),
+    //     0,
+    //   ),
+    //   StdlibFunction {
+    //     f: Arc::new(|args: Vec<Dval>| match args.as_slice() {
+    //       [DInt(start), DInt(end)] => (start..end).map(DInt),
+    //
+    //       // DList((start..end)  into_iter().map(DInt).collect())
+    //       _ => DError(CompilerError(CompilerError::IncorrectArguments)),
+    //     }),
+    //   },
+    // ),
   ];
   return fns.into_iter().collect();
 }
