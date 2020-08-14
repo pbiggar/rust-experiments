@@ -1,5 +1,19 @@
+use error_chain::error_chain;
 use rand;
 use std::rc::Rc;
+
+error_chain! {
+  errors {
+    MissingFunction(desc: FunctionDesc) {
+      description("missing function")
+      display("missing function")
+    }
+    IncorrectArguments {
+      description("incorrect arguments")
+      display("incorrect arguments")
+    }
+  }
+}
 
 type SymTable = im::HashMap<String, Dval>;
 
@@ -15,25 +29,13 @@ pub enum Expr {
 }
 
 #[derive(Debug)]
-pub enum CompilerError {
-  MissingFunction(FunctionDesc),
-  IncorrectArguments,
-}
-
-#[derive(Debug)]
-pub enum DarkError {
-  CompilerError(CompilerError),
-}
-
-#[derive(Debug)]
 pub enum Dval {
   DInt(i32),
   DList(im::Vector<Rc<Dval>>),
   DLambda(im::Vector<String>, Rc<Expr>),
-  DError(DarkError),
+  DError(Error),
 }
 
-use DarkError::*;
 use Dval::*;
 use Expr::*;
 
@@ -84,7 +86,7 @@ fn stdlib() -> StdlibDef {
               .collect();
             DList(new_list)
           }
-          _ => DError(CompilerError(CompilerError::IncorrectArguments)),
+          _ => DError(Error::from(ErrorKind::IncorrectArguments)),
         }),
         // (
         //   (
@@ -131,7 +133,7 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
             .collect();
           (v.f)(args)
         }
-        Option::None => DError(CompilerError(CompilerError::MissingFunction((
+        Option::None => DError(Error::from(ErrorKind::MissingFunction((
           owner.clone(),
           package.clone(),
           module.clone(),
