@@ -69,7 +69,7 @@ fn alternative_main() {
 // for which the error type is always our own `Error`.
 fn run() -> xk::Result<()> {
     use std::sync::Arc;
-    use xk::Expr::*;
+    use xk::Expr_::*;
     use xk::*;
     let program = Arc::new(Let(
         "range".to_string(),
@@ -93,12 +93,14 @@ fn run() -> xk::Result<()> {
         ),
     ));
 
-    let result = xk::run(&program);
-    match result {
-        Dval::DError(err) => Err(err),
-        _ => {
-            println!("{:?}", result);
-            Ok(())
-        }
-    }
+    let result = xk::run(program);
+    // match &*result {
+    //     Dval_::DError(err) => Err(move *err),
+    //     _ => {
+    //         println!("{:?}", result);
+    //         Ok(())
+    //     }
+    // }
+    println!("{:?}", result);
+    Ok(())
 }
