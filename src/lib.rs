@@ -114,15 +114,10 @@ macro_rules! dfn {
     $(
     let arg = stringify!($arg);
     let ty = stringify!($type);
-    println!("arg {}", arg);
-    println!("type {}", ty);
     )*
     let module = stringify!($module);
-    println!("module {}", module);
     let name = stringify!($name);
-    println!("name {}", name);
     let version = stringify!($version).to_string().parse::<u32>().unwrap();
-    println!("version {}", version);
     let fn_name = FunctionDesc(
         "dark".to_string(),
         "stdlib".to_string(),
@@ -130,16 +125,16 @@ macro_rules! dfn {
         name.to_string(),
         version,
       );
-      let copy = (fn_name.clone());
+    let fn_name2 = fn_name.clone();
     (
       fn_name,
       StdlibFunction {
-        f:  { let a = copy.clone(); Arc::new(
+        f:  { Arc::new(
               move |args| {
                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                   [$( param!($type, $arg) ),*] => $body,
                   _ => {
-                    Arc::new(DError(Error::from(ErrorKind::IncorrectArguments(a.clone()))))
+                    Arc::new(DError(Error::from(ErrorKind::IncorrectArguments(fn_name2.clone()))))
                   }
                   // "List.map".to_string(),
                   // vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
