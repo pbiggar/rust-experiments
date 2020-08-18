@@ -129,7 +129,9 @@ macro_rules! dfn {
     (
       fn_name,
       StdlibFunction {
-        f:  { Arc::new(
+        f:
+          {
+            Arc::new(
               move |args| {
                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                   [$( param!($type, $arg) ),*] => $body,
@@ -139,9 +141,7 @@ macro_rules! dfn {
                   // "List.map".to_string(),
                   // vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
                   // args,
-          }}) },
-      },
-    )
+          }})}, },)
   }};
 }
 // trace_macros!(true);
@@ -149,7 +149,10 @@ macro_rules! dfn {
 fn stdlib() -> StdlibDef {
   let fns = vec![
     dfn!(Int.random.0() { int(rand::random()) }),
-    dfn!(Int.range.0(start: Int, end: Int) { list!(int(*start), int(*end)) } ),
+    dfn!(Int.range.0(start: Int, end: Int) {
+      Arc::new(DList((*start..*end).map(int).collect()))
+    }
+    ),
     // dfn!(Int::random::v0 => |_args| Dval::DInt(rand::random())),
     // dfn!(
     //   List::map::v0 => |args| match args.as_slice() {
