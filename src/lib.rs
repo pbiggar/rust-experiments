@@ -1,8 +1,10 @@
+#![feature(trace_macros)]
 use error_chain::error_chain;
 use rand;
 use std::sync::Arc;
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
+
 pub enum FunctionDesc_ {
   FunctionDesc(String, String, String, String, u32),
 }
@@ -23,10 +25,11 @@ error_chain! {
 type SymTable = im::HashMap<String, Dval>;
 
 #[derive(Debug)]
+
 pub enum Expr_ {
   Let {
-    var: String,
-    rhs: Expr,
+    var:  String,
+    rhs:  Expr,
     body: Expr,
   },
   FnCall {
@@ -35,7 +38,7 @@ pub enum Expr_ {
   },
   Lambda {
     params: im::Vector<String>,
-    body: Expr,
+    body:   Expr,
   },
   Variable {
     name: String,
@@ -89,32 +92,9 @@ fn int(i: i32) -> Dval {
   Arc::new(DInt(i))
 }
 
-macro_rules! list {
-  () => (
-    Arc::new(DList(im::Vector::new()))
-  );
-  ($elem:expr; $n:expr) => (
-    Arc::new(DList(im::Vector::new(Vec::from_elem($elem, $n))))
-  );
-  ($($x:expr),+ $(,)?) => (
-    Arc::new(DList(im::Vector::from(
-      <[_]>::into_vec(Box::new([$($x),+])))))
-  );
-}
-
-macro_rules! param {
-  (Int, $name:ident) => {
-    DInt($name)
-  };
-}
-
 macro_rules! dfn {
 
-  ($module:ident.$name:ident.$version:literal($($arg:ident: $type:tt),*) { $body:expr }) => {{
-    $(
-    let arg = stringify!($arg);
-    let ty = stringify!($type);
-    )*
+  ($module:ident.$name:ident.$version:literal($ ($arg:pat),*) $body:block ) => { {
     let module = stringify!($module);
     let name = stringify!($name);
     let version = stringify!($version).to_string().parse::<u32>().unwrap();
@@ -132,131 +112,97 @@ macro_rules! dfn {
         f:
           {
             Arc::new(
-              move |args| {
+              move |args| { {
                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
-                  [$( param!($type, $arg) ),*] => $body,
+                  [$( $arg ),*] => $body,
                   _ => {
                     Arc::new(DError(Error::from(ErrorKind::IncorrectArguments(fn_name2.clone()))))
-                  }
-                  // "List.map".to_string(),
-                  // vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
-                  // args,
-          }})}, },)
+                  }}}})},
+                 },
+                )
   }};
 }
+//       _ => DError(Error::from(ErrorKind::IncorrectArguments(
+//         "List.map".to_string(),
+//         vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],         args,
+
 // trace_macros!(true);
 
 fn stdlib() -> StdlibDef {
-  let fns = vec![
-    dfn!(Int.random.0() { int(rand::random()) }),
-    dfn!(Int.range.0(start: Int, end: Int) {
-      Arc::new(DList((*start..*end).map(int).collect()))
-    }
-    ),
-    // dfn!(Int::random::v0 => |_args| Dval::DInt(rand::random())),
-    // dfn!(
-    //   List::map::v0 => |args| match args.as_slice() {
-    //       [DList(members), DLambda(_, body)] => {
-    //         let new_list = members
-    //           .iter()
-    //           .map(|_dv| {
-    //             let environment = Environment {
-    //               functions: stdlib(),
-    //             };
-    //             let st = im::HashMap::new();
-    //             Arc::new(eval(body, &st, &environment))
-    //           })
-    //           .collect();
-    //         DList(new_list)
-    //       }
-    //       _ => DError(Error::from(ErrorKind::IncorrectArguments(
-    //         "List.map".to_string(),
-    //         vec![TList(Arc::new(NamedType("a".to_string()))), TLambda],
-    //         args,
-    //       ))),
-    //     }
-    // ),
-    // (
-    //   (
-    //     "dark".to_string(),
-    //     "stdlib".to_string(),
-    //     "List".to_string(),
-    //     "range".to_string(),
-    //     0,
-    //   ),
-    //   StdlibFunction {
-    //     f: Arc::new(|args: Vec<Dval>| match args.as_slice() {
-    //       [DInt(start), DInt(end)] => (start..end).map(DInt),
-    //
-    //       // DList((start..end)  into_iter().map(DInt).collect())
-    //       _ => DError(CompilerError(CompilerError::IncorrectArguments)),
-    //     }),
-    //   },
-    // ),
-  ];
-  return fns.into_iter().collect();
+  let fns = vec![dfn!(Int.random.0() { int(rand::random()) }),
+                 dfn!(Int.range.0(DInt(start), DInt(end)) {
+                   Arc::new(DList((*start..*end).map(int).collect()))
+                 }),
+                 dfn!(List.map.0(DList(members), DLambda(args, body)) {
+                      let new_list = members
+                           .iter()
+                           .map(|_dv| {
+                             let environment = Environment {
+                               functions: stdlib(),
+                             };
+                             let st = im::HashMap::new();
+                             eval(body, &st, &environment)
+                           })
+                           .collect();
+                      Arc::new(DList(new_list))
+                 }),];
+
+  return fns.into_iter().collect()
 }
 
 fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
   match &**expr {
     IntLiteral { val } => int(*val),
-    Let {
-      var: _,
-      rhs: _,
-      body,
-    } => eval(&body, symtable, env),
+    Let { var: _,
+          rhs: _,
+          body, } => eval(&body, symtable, env),
     Variable { name: _ } => int(0),
     Lambda { params: _, body: _ } => int(0),
-    FnCall {
-      name: FunctionDesc(owner, package, module, name, version),
-      args,
-    } => {
-      let fn_def = env.functions.get(&FunctionDesc(
-        owner.clone(),
-        package.clone(),
-        module.clone(),
-        name.clone(),
-        version.clone(),
-      ));
+    FnCall { name: FunctionDesc(owner, package, module, name, version),
+             args, } => {
+      let fn_def = env.functions.get(&FunctionDesc(owner.clone(),
+                                                   package.clone(),
+                                                   module.clone(),
+                                                   name.clone(),
+                                                   version.clone()));
+
       match fn_def {
         Option::Some(v) => {
-          let args = args
-            .into_iter()
-            .map(|arg| eval(&arg, symtable, env))
-            .collect();
+          let args = args.into_iter()
+                         .map(|arg| eval(&arg, symtable, env))
+                         .collect();
+
           (v.f)(args)
         }
-        Option::None => Arc::new(DError(Error::from(ErrorKind::MissingFunction(
-          FunctionDesc(
-            owner.clone(),
-            package.clone(),
-            module.clone(),
-            name.clone(),
-            *version,
-          ),
-        )))),
+        Option::None => {
+          Arc::new(DError(Error::from(ErrorKind::MissingFunction(FunctionDesc(owner.clone(),
+                                                                              package.clone(),
+                                                                              module.clone(),
+                                                                              name.clone(),
+                                                                              *version)))))
+        }
       }
     }
   }
 }
 
-pub fn stdlib_fn(module: &str, name: &str, version: u32, args: im::Vector<Expr>) -> Expr {
-  Arc::new(FnCall {
-    name: FunctionDesc(
-      "dark".to_string(),
-      "stdlib".to_string(),
-      module.to_string(),
-      name.to_string(),
-      version,
-    ),
-    args,
-  })
+pub fn stdlib_fn(module: &str,
+                 name: &str,
+                 version: u32,
+                 args: im::Vector<Expr>)
+                 -> Expr {
+  Arc::new(FnCall { name: FunctionDesc("dark".to_string(),
+                                       "stdlib".to_string(),
+                                       module.to_string(),
+                                       name.to_string(),
+                                       version),
+                    args })
 }
 
 pub fn run(body: Expr) -> Dval {
-  let environment = Environment {
-    functions: stdlib(),
-  };
+  let environment = Environment { functions: stdlib(), };
+
   let st = im::HashMap::new();
-  return eval(&body, &st, &environment);
+
+  return eval(&body, &st, &environment)
 }
