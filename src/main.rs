@@ -1,3 +1,4 @@
+#![feature(box_syntax)]
 // Simple and robust error handling with error-chain!
 // Use this as a template for new projects.
 
@@ -9,13 +10,29 @@
 #[macro_use]
 extern crate error_chain;
 
+macro_rules! ivec {
+  () => (
+      im::Vector::new()
+  );
+  ($($x:expr),+ $(,)?) => (
+      im::Vector::from(<[_]>::into_vec(box [$($x),+]))
+  );
+}
+
+mod dval;
+mod errors;
+mod eval;
+mod expr;
+mod runtime;
+use expr::*;
+
 // We'll put our errors in an `errors` module, and other modules in
 // this crate will `use errors::*;` to get access to everything
 // `error_chain!` creates.
-mod errors {
-  // Create the Error, ErrorKind, ResultExt, and Result types
-  error_chain! {}
-}
+// mod errors {
+//   // Create the Error, ErrorKind, ResultExt, and Result types
+//   error_chain! {}
+// }
 
 // This only gives access within this module. Make this `pub use errors::*;`
 // instead if the types must be accessible from other modules (e.g., within
@@ -58,41 +75,6 @@ fn alternative_main() {
   }
 }
 
-// macro_rules! equations_impl {
-//   (() -> ($module:ident.$name:ident.$version:literal( $($params:tt)* ) ) ) => {
-//     Arc::new(Expr_::FnCall { name : ("dark", "stdlib", stringify!($module), stringify!($name), $version) })
-//   };
-//   (([> pattern a <] $($rest:tt)*) -> ($($output:tt)*)) => {
-//       equations_impl!(($($rest)*) -> ($(output)*) [> new output <] );
-//   };
-//   // (([> pattern b <] $($rest:tt)*) -> ([> current output <])) => {
-//   //     equations_impl!(($($rest)*) -> ($(output)*) [> new output <] );
-//   // };
-// }
-// macro_rules! equations {
-//   ($($input:tt)*) => {
-//       {
-//           equations_impl!(($($input)*) -> ())
-//       }
-//   };
-// }
-
-macro_rules! prog {
-  ($module:ident.$name:ident.$version:literal( $($param:tt),* ) ) => {
-    Arc::new(Expr_::FnCall { name: xk::FunctionDesc_::FunctionDesc("dark".to_string(),
-                                    "stdlib".to_string(),
-                                    stringify!($module).to_string(),
-                                    stringify!($name).to_string(),
-                                    $version),
-
-                            args: im::Vector::from(vec!( $( prog!($param), )* ))})
-  };
-
-  ($literal:literal) => {
-    Arc::new(Expr_::from($literal))
-  }
-}
-
 // Use this macro to auto-generate the main above. You may want to
 // set the `RUST_BACKTRACE` env variable to see a backtrace.
 // quick_main!(run);
@@ -100,35 +82,19 @@ macro_rules! prog {
 // Most functions will return the `Result` type, imported from the
 // `errors` module. It is a typedef of the standard `Result` type
 // for which the error type is always our own `Error`.
-fn run() -> xk::Result<()> {
+fn run() -> errors::Result<()> {
   use std::sync::Arc;
-  use xk::{Expr_, Expr_::*};
-  let program = Arc::new(Expr_::from(5));
+  let program = Arc::new(expr::Expr_::from(5));
 
-  let program = prog! { Int.range.0(0, 100) };
-  // let program = Arc::new(Let(
-  //     "range".to_string(),
-  //     stdlib_fn(
-  //         "Int",
-  //         "range",
-  //         0,
-  //         im::Vector::from(vec![Arc::new(IntLiteral(0)), Arc::new(IntLiteral(100))]),
-  //     ),
-  //     stdlib_fn(
-  //         "List",
-  //         "map",
-  //         0,
-  //         im::Vector::from(vec![
-  //             Arc::new(Variable("range".to_string())),
-  //             Arc::new(Lambda(
-  //                 im::Vector::from(vec!["i".to_string()]),
-  //                 Arc::new(IntLiteral(0)),
-  //             )),
-  //         ]),
-  //     ),
-  // ));
+  let program = expr::let_("range",
+                           sfn("Int", "range", 0, ivec![int(0), int(100),]),
+                           sfn("List",
+                               "map",
+                               0,
+                               ivec![(var("range")),
+                                     lambda(ivec!["i"], int(0),),]));
 
-  let result = xk::run(program);
+  let result = eval::run(program);
   // match &*result {
   //     Dval_::DError(err) => Err(move *err),
   //     _ => {
