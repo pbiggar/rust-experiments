@@ -48,6 +48,12 @@ pub enum Expr_ {
   },
 }
 
+impl From<i32> for Expr_ {
+  fn from(item: i32) -> Self {
+    IntLiteral { val: item }
+  }
+}
+
 #[derive(Debug)]
 pub enum Dval_ {
   DInt(i32),
