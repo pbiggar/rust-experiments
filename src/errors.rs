@@ -1,17 +1,25 @@
-use crate::{
-  dval::{DType, Dval},
-  runtime,
-};
+use crate::{dval::Dval, runtime};
+use std::fmt;
 
-error_chain! {
-  errors {
-    MissingFunction(desc: runtime::FunctionDesc_) {
-      description("missing function")
-      display("missing function")
+#[derive(Debug)]
+pub enum Error {
+  MissingFunction(runtime::FunctionDesc_),
+  IncorrectArguments(runtime::FunctionDesc_, im::Vector<Dval>),
+}
+
+impl fmt::Display for Error {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    match self {
+      Error::MissingFunction(fun) => write!(f, "Missing function: {}", fun),
+      Error::IncorrectArguments(fun, actuals) => {
+        write!(f, "Incorrect arguments calling {}, with {:?}", fun, actuals)
+      }
     }
-    IncorrectArguments(name: runtime::FunctionDesc_, actuals: im::Vector<Dval>) {
-      description("Incorrect Arguments")
-      display("incorrect arguments calling {:?}", name)
-    }
+  }
+}
+
+impl std::error::Error for Error {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    Some(self)
   }
 }

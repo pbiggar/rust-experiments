@@ -1,10 +1,4 @@
-use crate::{
-  dval::Dval,
-  errors::{Error, ErrorKind},
-  expr::Expr,
-  runtime::*,
-};
-use rand;
+use crate::{dval::Dval, errors::Error::*, expr::Expr, runtime::*};
 use std::sync::Arc;
 
 pub fn run(body: Expr) -> Dval {
@@ -37,7 +31,7 @@ macro_rules! dfn {
                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                   [$( $arg ),*] => $body,
                   _ => {
-                    Arc::new(DError(Error::from(ErrorKind::IncorrectArguments(fn_name2.clone(), args))))
+                    Arc::new(DError((IncorrectArguments(fn_name2.clone(), args))))
                   }}}})},
                  },
                 )
@@ -92,11 +86,11 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
           (v.f)(args)
         }
         Option::None => {
-          Arc::new(Dval_::DError(Error::from(ErrorKind::MissingFunction(FunctionDesc(owner.clone(),
+          Arc::new(Dval_::DError(MissingFunction(FunctionDesc(owner.clone(),
                                                                               package.clone(),
                                                                               module.clone(),
                                                                               name.clone(),
-                                                                              *version)))))
+                                                                              *version))))
         }
       }
     }
