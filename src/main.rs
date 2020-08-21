@@ -16,7 +16,7 @@ mod eval;
 mod expr;
 mod runtime;
 use expr::*;
-use std::sync::Arc;
+use im_rc as im;
 
 fn main() -> Result<(), errors::Error> {
   let program = expr::let_("range",

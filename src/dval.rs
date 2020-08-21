@@ -1,4 +1,5 @@
-use std::sync::Arc;
+use im_rc as im;
+use std::rc::Rc;
 
 use crate::{errors, expr};
 
@@ -10,19 +11,19 @@ pub enum Dval_ {
   DError(errors::Error),
 }
 
-pub type Dval = Arc<Dval_>;
+pub type Dval = Rc<Dval_>;
 
 unsafe impl Send for Dval_ {}
 unsafe impl Sync for Dval_ {}
 
 #[derive(Debug)]
 pub enum DType {
-  TList(Arc<DType>),
+  TList(Rc<DType>),
   TLambda,
   TAny,
   NamedType(String),
 }
 
 pub fn int(i: i32) -> Dval {
-  Arc::new(Dval_::DInt(i))
+  Rc::new(Dval_::DInt(i))
 }

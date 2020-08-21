@@ -1,5 +1,6 @@
 use crate::{dval::Dval, errors::Error::*, expr::Expr, runtime::*};
-use std::sync::Arc;
+use im_rc as im;
+use std::rc::Rc;
 
 pub fn run(body: Expr) -> Dval {
   let environment = Environment { functions: stdlib(), };
@@ -26,12 +27,12 @@ macro_rules! dfn {
       StdlibFunction {
         f:
           {
-            Arc::new(
+            Rc::new(
               move |args| { {
                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                   [$( $arg ),*] => $body,
                   _ => {
-                    Arc::new(DError((IncorrectArguments(fn_name2.clone(), args))))
+                    Rc::new(DError((IncorrectArguments(fn_name2.clone(), args))))
                   }}}})},
                  },
                 )
@@ -42,7 +43,7 @@ fn stdlib() -> StdlibDef {
   use crate::dval::{Dval_::*, *};
   let fns = vec![dfn!(Int.random.0() { int(rand::random()) }),
                  dfn!(Int.range.0(DInt(start), DInt(end)) {
-                   Arc::new(DList((*start..*end).map(int).collect()))
+                   Rc::new(DList((*start..*end).map(int).collect()))
                  }),
                  dfn!(List.map.0(DList(members), DLambda(args, body)) {
                       let new_list = members
@@ -55,7 +56,7 @@ fn stdlib() -> StdlibDef {
                              eval(body, &st, &environment)
                            })
                            .collect();
-                      Arc::new(DList(new_list))
+                      Rc::new(DList(new_list))
                  }),];
   fns.into_iter().collect()
 }
@@ -86,11 +87,11 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
           (v.f)(args)
         }
         Option::None => {
-          Arc::new(Dval_::DError(MissingFunction(FunctionDesc(owner.clone(),
-                                                                              package.clone(),
-                                                                              module.clone(),
-                                                                              name.clone(),
-                                                                              *version))))
+          Rc::new(Dval_::DError(MissingFunction(FunctionDesc(owner.clone(),
+                                                             package.clone(),
+                                                             module.clone(),
+                                                             name.clone(),
+                                                             *version))))
         }
       }
     }

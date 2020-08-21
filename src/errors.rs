@@ -1,4 +1,5 @@
 use crate::{dval::Dval, runtime};
+use im_rc as im;
 use std::fmt;
 
 #[derive(Debug)]
