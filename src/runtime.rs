@@ -1,4 +1,3 @@
-#![feature(trace_macros)]
 use crate::dval::Dval;
 use std::sync::Arc;
 
@@ -7,7 +6,7 @@ pub enum FunctionDesc_ {
   FunctionDesc(String, String, String, String, u32),
 }
 
-pub type FuncSig = Arc<dyn Fn(Vec<Dval>) -> Dval>;
+pub type FuncSig = Arc<dyn Fn(im::Vector<Dval>) -> Dval>;
 
 pub type SymTable = im::HashMap<String, Dval>;
 

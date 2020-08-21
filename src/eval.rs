@@ -12,7 +12,7 @@ pub fn run(body: Expr) -> Dval {
 
   let st = im::HashMap::new();
 
-  return eval(&body, &st, &environment)
+  eval(&body, &st, &environment)
 }
 macro_rules! dfn {
   ($module:ident.$name:ident.$version:literal($ ($arg:pat),*) $body:block ) => { {
@@ -37,7 +37,7 @@ macro_rules! dfn {
                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                   [$( $arg ),*] => $body,
                   _ => {
-                    Arc::new(DError(Error::from(ErrorKind::IncorrectArguments(fn_name2.clone()))))
+                    Arc::new(DError(Error::from(ErrorKind::IncorrectArguments(fn_name2.clone(), args))))
                   }}}})},
                  },
                 )
@@ -63,8 +63,7 @@ fn stdlib() -> StdlibDef {
                            .collect();
                       Arc::new(DList(new_list))
                  }),];
-
-  return fns.into_iter().collect()
+  fns.into_iter().collect()
 }
 
 fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {

@@ -1,3 +1,4 @@
+// #![feature(trace_macros)]
 #![feature(box_syntax)]
 // Simple and robust error handling with error-chain!
 // Use this as a template for new projects.

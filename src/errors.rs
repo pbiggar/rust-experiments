@@ -1,4 +1,7 @@
-use crate::runtime;
+use crate::{
+  dval::{DType, Dval},
+  runtime,
+};
 
 error_chain! {
   errors {
@@ -6,7 +9,7 @@ error_chain! {
       description("missing function")
       display("missing function")
     }
-    IncorrectArguments(name: runtime::FunctionDesc_) {
+    IncorrectArguments(name: runtime::FunctionDesc_, actuals: im::Vector<Dval>) {
       description("Incorrect Arguments")
       display("incorrect arguments calling {:?}", name)
     }

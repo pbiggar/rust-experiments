@@ -16,8 +16,8 @@ unsafe impl Send for Dval_ {}
 unsafe impl Sync for Dval_ {}
 
 #[derive(Debug)]
-pub enum Type {
-  TList(Arc<Type>),
+pub enum DType {
+  TList(Arc<DType>),
   TLambda,
   TAny,
   NamedType(String),
