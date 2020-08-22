@@ -72,7 +72,7 @@ fn stdlib() -> StdlibDef {
                  dfn!(Int.range.0(DInt(start), DInt(end)) {
                    Rc::new(DList((*start..*end).map(int).collect()))
                  }),
-                 dfn!(List.map.0(DList(members), DLambda(args, body)) {
+                 dfn!(List.map.0(DList(members), DLambda(_args, body)) {
                       let new_list = members
                            .iter()
                            .map(|_dv| {
@@ -92,10 +92,14 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
   use crate::{dval::*, expr::Expr_::*, runtime::FunctionDesc_::*};
   match &**expr {
     IntLiteral { val } => int(*val),
-    Let { lhs: _,
-          rhs: _,
-          body, } => eval(&body, symtable, env),
-    Variable { name: _ } => int(0),
+    Let { lhs, rhs, body } => {
+      let rhs = eval(rhs, symtable, env);
+      let new_symtable = symtable.update(lhs.clone(), rhs);
+      eval(&body, &new_symtable, env)
+    }
+    Variable { name } => {
+      symtable.get(name).expect("variable does not exist").clone()
+    }
     Lambda { params: _, body: _ } => int(0),
     FnCall { name:
                FunctionDesc(owner,
