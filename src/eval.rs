@@ -1,4 +1,7 @@
-use crate::{dval::Dval, errors::Error::*, expr::Expr, runtime::*};
+use crate::{
+  dval as D, dval::Dval, errors::Error::*, expr as E, expr::Expr,
+  runtime::*,
+};
 use im_rc as im;
 use std::rc::Rc;
 
@@ -38,6 +41,30 @@ macro_rules! dfn {
                 )
   }};
 }
+/*  */
+/* #[macros::darkfn] */
+/* fn int_random_0(start: int, end: int) -> List<int> { */
+// *start: the first variable
+// *end: the second variable
+/*   D.list((*start..*end).map(int).collect()) */
+/* } */
+
+/* ( */
+/*   fn_name, */
+/*   StdlibFunction { */
+/*     t: [] */
+/*     f: */
+/*       { */
+/*         Rc::new( */
+/*           move |args| { { */
+/*             match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() { */
+/*               [DInt(start), DInt(end)] => $body, */
+/*               _ => { */
+/*                 Rc::new(DError((IncorrectArguments(fn_name2.clone(), args)))) */
+/*               }}}})}, */
+/*              }, */
+/*             ) */
+/*  */
 
 fn stdlib() -> StdlibDef {
   use crate::dval::{Dval_::*, *};
@@ -70,7 +97,12 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
           body, } => eval(&body, symtable, env),
     Variable { name: _ } => int(0),
     Lambda { params: _, body: _ } => int(0),
-    FnCall { name: FunctionDesc(owner, package, module, name, version),
+    FnCall { name:
+               FunctionDesc(owner,
+                            package,
+                            module,
+                            name,
+                            version),
              args, } => {
       let fn_def = env.functions.get(&FunctionDesc(owner.clone(),
                                                    package.clone(),

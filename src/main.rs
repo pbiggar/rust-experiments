@@ -20,12 +20,14 @@ use im_rc as im;
 
 fn main() -> Result<(), errors::Error> {
   let program = expr::let_("range",
-                           sfn("Int", "range", 0, ivec![int(0), int(100),]),
-                           sfn("List",
-                               "map",
-                               0,
-                               ivec![(var("range")),
-                                     lambda(ivec!["i"], int(0),),]));
+               sfn("Int", "range", 0, ivec![int(0), int(100),]),
+               var("range")
+               // sfn("List",
+               //     "map",
+               //     0,
+               //     ivec![(var("range")),
+               //           lambda(ivec!["i"], int(0),),])
+                        );
 
   let result = eval::run(program);
   match &*result {
