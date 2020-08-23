@@ -6,7 +6,7 @@ edition = "2018"
 
 [dependencies]
 proc-macro2 = {version = "1.0.19", features = ["nightly"]}
-quote = "1.0"
+quote = "1.0.7"
 syn = {version = "1.0.39", features = ["full"]}
 
 [lib]
