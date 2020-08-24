@@ -1,3 +1,4 @@
+use crate::expr;
 use im_rc as im;
 use std::rc::Rc;
 
@@ -8,7 +9,7 @@ use crate::errors;
 pub enum Dval_ {
   DInt(i32),
   DList(im::Vector<Dval>),
-  // DLambda(im::Vector<String>, expr::Expr),
+  DLambda(im::Vector<String>, expr::Expr),
   DError(errors::Error),
 }
 
@@ -27,4 +28,8 @@ pub enum DType {
 
 pub fn int(i: i32) -> Dval {
   Rc::new(Dval_::DInt(i))
+}
+
+pub fn list(l: im::Vector<Dval>) -> Dval {
+  Rc::new(Dval_::DList(l))
 }

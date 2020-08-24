@@ -84,6 +84,11 @@ fn argument_pattern(scopes: Vec<&str>, name: &str, ty: &Type) -> Pat {
   };
   match type_name.to_string().as_ref() {
     "Int" => variant(scopes, "DInt", vec![name]),
+    "List" => variant(scopes, "DList", vec![name]),
+    "Lambda" => variant(scopes,
+                        "DLambda",
+                        vec![&format!("{}_vars", name).to_string(),
+                             &format!("{}_body", name).to_string()]),
     ty => panic!("type not recognized: {}", ty),
   }
 }
@@ -101,20 +106,6 @@ fn get_argument_patterns(ifn: ItemFn) -> Punc<Pat, token::Comma> {
                                     .into_iter())
 }
 
-// turn (start: int) into (DInt(start));
-// turn (l: Lambda) into (DLambda(l_names, l_body));
-// fn process_sig(mut sig: syn::Signature) -> () {
-//   sig.inputs.iter_mut().map(|arg| match &arg {
-//                          _ => (),
-//                          Typed(syn::PatType { pat:
-//                                                 box ref x,
-//                                               ty:
-//                                                 box ref t,
-//                                               .. }) => (),
-//                        }); ()
-// }
-//
-
 fn get_body(ifn: ItemFn) -> Box<Block> {
   ifn.block
 }
@@ -125,9 +116,7 @@ fn get_body(ifn: ItemFn) -> Box<Block> {
 // }
 //
 fn get_fn_name(ifn: ItemFn) -> Ident {
-  let name = ifn.sig.ident.to_string();
-  println!("{}", name);
-  quote::format_ident!("int_range_0")
+  ifn.sig.ident
 }
 //
 #[proc_macro_attribute]
@@ -138,7 +127,7 @@ pub fn stdlibfn(_attr: TokenStream,
   let body = get_body(input.clone());
   let argument_patterns = get_argument_patterns(input.clone());
   // let _types = get_types(input.clone());
-  let _fn_name = get_fn_name(input.clone());
+  let fn_name = get_fn_name(input.clone());
   //
   // take function name in form a_b_c and convert to something to insert into stdlib
   // create structure of StdlibFunction
@@ -146,7 +135,7 @@ pub fn stdlibfn(_attr: TokenStream,
   // add f
   let output = quote::quote! {
 
-    fn int_range_0() -> (FunctionDesc_, StdlibFunction) {
+    fn #fn_name() -> (FunctionDesc_, StdlibFunction) {
       let module = "Int";
       let name = "range";
       let version = 0;

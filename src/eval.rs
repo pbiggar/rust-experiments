@@ -54,29 +54,33 @@ pub fn run(body: Expr) -> Dval {
 /* } */
 
 #[stdlibfn]
-fn int_range_0(start: Int, end: Int) -> Dval {
-  Rc::new(DList(im::Vector::from_iter((*start..*end).map(|i| {
-                                                      Rc::new(DInt(i))
-                                                    }))))
+fn int__range__0(start: Int, end: Int) -> Dval {
+  list(im::Vector::from_iter((*start..*end).map(|i| int(i))))
+}
+
+#[stdlibfn]
+fn int__random__0() {
+  int(rand::random())
+}
+
+#[stdlibfn]
+fn list__map__0(members: List, l: Lambda) {
+  {
+    let new_list = members.iter()
+                          .map(|_dv| {
+                            let environment =
+                              Environment { functions: stdlib(), };
+                            let st = im::HashMap::new();
+                            eval(l_body, &st, &environment)
+                          })
+                          .collect();
+    list(new_list)
+  }
 }
 
 fn stdlib() -> StdlibDef {
-  #[allow(warnings)]
-  let fns = vec![/* dfn!(Int.random.0() { int(rand::random()) }), */
-                 int_range_0(),
-                 /* dfn!(List.map.0(DList(members), DLambda(_args, body)) { */
-                 /*      let new_list = members */
-                 /*           .iter() */
-                 /*           .map(|_dv| { */
-                 /*             let environment = Environment { */
-                 /*               functions: stdlib(), */
-                 /*             }; */
-                 /*             let st = im::HashMap::new(); */
-                 /*             eval(body, &st, &environment) */
-                 /*           }) */
-                 /*           .collect(); */
-                 /*      Rc::new(DList(new_list)) */
-                 /* }), */];
+  #[allow(non_snake_case)]
+  let fns = vec![int__random__0(), int__range__0(), list__map__0(),];
   fns.into_iter().collect()
 }
 
