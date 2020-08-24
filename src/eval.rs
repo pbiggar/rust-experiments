@@ -1,6 +1,13 @@
-use crate::{dval::Dval, errors::Error::*, expr::Expr, runtime::*};
+use crate::{
+  dval,
+  dval::{Dval_::*, *},
+  errors::Error::*,
+  expr::Expr,
+  runtime::*,
+};
 use im_rc as im;
-use std::rc::Rc;
+use macros::stdlibfn;
+use std::{iter::FromIterator, rc::Rc};
 
 pub fn run(body: Expr) -> Dval {
   let environment = Environment { functions: stdlib(), };
@@ -46,20 +53,15 @@ pub fn run(body: Expr) -> Dval {
 /*   D.list((*start..*end).map(int).collect()) */
 /* } */
 
-use macros::darkfn;
-
-/* fn int_range_0(start: int, end: int) -> Dval { */
-/*   Rc::new(DList((*start..*end).map(int).collect())) */
-/* } */
-
-use crate::dval::Dval_;
-
-#[darkfn]
-fn int_range_0() -> Dval {
-  Rc::new(DList((*start..*end).map(int).collect()))
+#[stdlibfn]
+fn int_range_0(start: Int, end: Int) -> Dval {
+  Rc::new(DList(im::Vector::from_iter((*start..*end).map(|i| {
+                                                      Rc::new(DInt(i))
+                                                    }))))
 }
 
 fn stdlib() -> StdlibDef {
+  #[allow(warnings)]
   let fns = vec![/* dfn!(Int.random.0() { int(rand::random()) }), */
                  int_range_0(),
                  /* dfn!(List.map.0(DList(members), DLambda(_args, body)) { */
@@ -90,7 +92,7 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
     Variable { name } => {
       symtable.get(name).expect("variable does not exist").clone()
     }
-    Lambda { params: _, body: _ } => int(0),
+    /* Lambda { params: _, body: _ } => int(0), */
     FnCall { name:
                FunctionDesc(owner,
                             package,

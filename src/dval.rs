@@ -1,13 +1,14 @@
 use im_rc as im;
 use std::rc::Rc;
 
-use crate::{errors, expr};
+// use crate::{errors, expr};
+use crate::errors;
 
 #[derive(Debug)]
 pub enum Dval_ {
   DInt(i32),
   DList(im::Vector<Dval>),
-  DLambda(im::Vector<String>, expr::Expr),
+  // DLambda(im::Vector<String>, expr::Expr),
   DError(errors::Error),
 }
 
@@ -18,10 +19,10 @@ unsafe impl Sync for Dval_ {}
 
 #[derive(Debug)]
 pub enum DType {
-  TList(Rc<DType>),
-  TLambda,
-  TAny,
-  NamedType(String),
+  // TList(Rc<DType>),
+// TLambda,
+// TAny,
+// NamedType(String),
 }
 
 pub fn int(i: i32) -> Dval {

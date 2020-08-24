@@ -1,5 +1,7 @@
-// #![feature(trace_macros)]
+#![feature(trace_macros)]
 #![feature(box_syntax)]
+#![feature(log_syntax)]
+#![warn(missing_debug_implementations)]
 
 macro_rules! ivec {
   () => (

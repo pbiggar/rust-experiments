@@ -14,10 +14,10 @@ pub enum Expr_ {
     name: FunctionDesc_,
     args: im::Vector<Expr>,
   },
-  Lambda {
-    params: im::Vector<String>,
-    body:   Expr,
-  },
+  // Lambda {
+  //   params: im::Vector<String>,
+  //   body:   Expr,
+  // },
   Variable {
     name: String,
   },
@@ -46,10 +46,12 @@ pub fn var(name: &str) -> Expr {
   Rc::new(Variable { name: name.to_string(), })
 }
 
-pub fn lambda(names: im::Vector<&str>, body: Expr) -> Expr {
-  Rc::new(Lambda { params: names.iter().map(|n| n.to_string()).collect(),
-                   body })
-}
+// pub fn lambda(names: im::Vector<&str>, body: Expr) -> Expr {
+//   Rc::new(Lambda { params: names.iter()
+//                                 .map(|n| n.to_string())
+//                                 .collect(),
+//                    body })
+// }
 
 impl From<i32> for Expr_ {
   fn from(item: i32) -> Self {
@@ -63,10 +65,11 @@ pub fn sfn(module: &str,
            version: u32,
            args: im::Vector<Expr>)
            -> Expr {
-  Rc::new(FnCall { name: FunctionDesc_::FunctionDesc("dark".to_string(),
-                                                     "stdlib".to_string(),
-                                                     module.to_string(),
-                                                     name.to_string(),
-                                                     version),
+  Rc::new(FnCall { name:
+                     FunctionDesc_::FunctionDesc("dark".to_string(),
+                                                 "stdlib".to_string(),
+                                                 module.to_string(),
+                                                 name.to_string(),
+                                                 version),
                    args })
 }
