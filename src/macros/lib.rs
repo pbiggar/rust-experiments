@@ -118,7 +118,16 @@ fn get_body(ifn: ItemFn) -> Box<Block> {
 fn get_fn_name(ifn: ItemFn) -> Ident {
   ifn.sig.ident
 }
-//
+
+fn get_fn_name_parts(ifn: ItemFn)
+                     -> (String, String, String, String, u32) {
+  ("dark".to_string(),
+   "stdlib".to_string(),
+   "Int".to_string(),
+   "range".to_string(),
+   0)
+}
+
 #[proc_macro_attribute]
 pub fn stdlibfn(_attr: TokenStream,
                 item: TokenStream)
@@ -128,6 +137,8 @@ pub fn stdlibfn(_attr: TokenStream,
   let argument_patterns = get_argument_patterns(input.clone());
   // let _types = get_types(input.clone());
   let fn_name = get_fn_name(input.clone());
+  let (owner, package, module, name, version) =
+    get_fn_name_parts(input.clone());
   //
   // take function name in form a_b_c and convert to something to insert into stdlib
   // create structure of StdlibFunction
@@ -136,29 +147,26 @@ pub fn stdlibfn(_attr: TokenStream,
   let output = quote::quote! {
 
     fn #fn_name() -> (FunctionDesc_, StdlibFunction) {
-      let module = "Int";
-      let name = "range";
-      let version = 0;
-    let fn_name = FunctionDesc_::FunctionDesc(
-        "dark".to_string(),
-        "stdlib".to_string(),
-        module.to_string(),
-        name.to_string(),
-        version,
-    );
-    let fn_name2 = fn_name.clone();
-      (fn_name,
-     StdlibFunction {
-       f:
-         {
-           Rc::new(
-             move |args| { {
-               match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
-                 [ #argument_patterns ] => #body,
-                 _ => {
-                   Rc::new(Dval_::DError((IncorrectArguments(fn_name2.clone(), args))))
-                 }}}})},
-                })}
+        let fn_name = FunctionDesc_::FunctionDesc(
+            #owner.to_string(),
+            #package.to_string(),
+            #module.to_string(),
+            #name.to_string(),
+            #version,
+        );
+        let fn_name2 = fn_name.clone();
+          (fn_name,
+         StdlibFunction {
+           f:
+             {
+               Rc::new(
+                 move |args| { {
+                   match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
+                     [ #argument_patterns ] => #body,
+                     _ => {
+                       Rc::new(Dval_::DError((IncorrectArguments(fn_name2.clone(), args))))
+                     }}}})},
+                    })}
   };
   TokenStream::from(output)
 }
