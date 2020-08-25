@@ -3,13 +3,13 @@ use im_rc as im;
 use std::rc::Rc;
 
 // use crate::{errors, expr};
-use crate::errors;
+use crate::{errors, runtime};
 
 #[derive(Debug)]
 pub enum Dval_ {
   DInt(i32),
   DList(im::Vector<Dval>),
-  DLambda(im::Vector<String>, expr::Expr),
+  DLambda(runtime::SymTable, im::Vector<String>, expr::Expr),
   DError(errors::Error),
 }
 

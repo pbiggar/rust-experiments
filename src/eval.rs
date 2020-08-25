@@ -1,5 +1,9 @@
 use crate::{
-  dval, dval::*, errors::Error::*, expr::Expr, runtime::*,
+  dval,
+  dval::{Dval_::*, *},
+  errors::Error::*,
+  expr::Expr,
+  runtime::*,
 };
 use im_rc as im;
 use macros::stdlibfn;
@@ -10,38 +14,8 @@ pub fn run(body: Expr) -> Dval {
 
   let st = im::HashMap::new();
 
-  eval(&body, &st, &environment)
+  eval(body, st, &environment)
 }
-/* macro_rules! dfn { */
-/*   ($module:ident.$name:ident.$version:literal($ ($arg:pat),*) $body:block ) => { { */
-/*     let module = stringify!($module); */
-/*     let name = stringify!($name); */
-/*     let version = stringify!($version).to_string().parse::<u32>().unwrap(); */
-/*     let fn_name = functiondesc_::functiondesc( */
-/*         "dark".to_string(), */
-/*         "stdlib".to_string(), */
-/*         module.to_string(), */
-/*         name.to_string(), */
-/*         version, */
-/*       ); */
-/*     let fn_name2 = fn_name.clone(); */
-/*     ( */
-/*       fn_name, */
-/*       StdlibFunction { */
-/*         f: */
-/*           { */
-/*             Rc::new( */
-/*               move |args| { { */
-/*                 match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() { */
-/*                   [$( $arg ),*] => $body, */
-/*                   _ => { */
-/*                     Rc::new(DError((IncorrectArguments(fn_name2.clone(), args)))) */
-/*                   }}}})}, */
-/*                  }, */
-/*                 ) */
-/*   }}; */
-/* } */
-/*  */
 /* #[macros::darkfn] */
 /* fn int_random_0(start: int, end: int) -> List<int> { */
 // *start: the first variable
@@ -62,14 +36,14 @@ fn int__random__0() {
 #[stdlibfn]
 fn list__map__0(members: List, l: Lambda) {
   {
-    let new_list = members.iter()
-                          .map(|_dv| {
-                            let environment =
-                              Environment { functions: stdlib(), };
-                            let st = im::HashMap::new();
-                            eval(l_body, &st, &environment)
-                          })
-                          .collect();
+    let new_list =
+      members.iter()
+             .map(|_dv| {
+               let environment = Environment { functions: stdlib(), };
+               let st = l_symtable;
+               eval(l_body.clone(), st.clone(), &environment)
+             })
+             .collect();
     list(new_list)
   }
 }
@@ -80,19 +54,21 @@ fn stdlib() -> StdlibDef {
   fns.into_iter().collect()
 }
 
-fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
+fn eval(expr: Expr, symtable: SymTable, env: &Environment) -> Dval {
   use crate::{dval::*, expr::Expr_::*, runtime::FunctionDesc_::*};
-  match &**expr {
+  match &*(expr) {
     IntLiteral { val } => int(*val),
     Let { lhs, rhs, body } => {
-      let rhs = eval(rhs, symtable, env);
+      let rhs = eval(rhs.clone(), symtable.clone(), env);
       let new_symtable = symtable.update(lhs.clone(), rhs);
-      eval(&body, &new_symtable, env)
+      eval(body.clone(), new_symtable, env)
     }
     Variable { name } => {
       symtable.get(name).expect("variable does not exist").clone()
     }
-    /* Lambda { params: _, body: _ } => int(0), */
+    Lambda { params, body } => {
+      Rc::new(DLambda(symtable, params.clone(), body.clone()))
+    }
     FnCall { name:
                FunctionDesc(owner,
                             package,
@@ -109,7 +85,7 @@ fn eval(expr: &Expr, symtable: &SymTable, env: &Environment) -> Dval {
       match fn_def {
         Option::Some(v) => {
           let args = args.into_iter()
-                         .map(|arg| eval(&arg, symtable, env))
+                         .map(|arg| eval(arg.clone(), symtable.clone(), env))
                          .collect();
 
           (v.f)(args)
