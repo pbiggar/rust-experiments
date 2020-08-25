@@ -9,9 +9,14 @@ pub enum FunctionDesc_ {
 
 impl fmt::Display for FunctionDesc_ {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    let FunctionDesc_::FunctionDesc(owner, package, module, name, version) =
-      self;
-    write!(f, "{}/{}/{}::{}_v{}", owner, package, module, name, version)
+    let FunctionDesc_::FunctionDesc(owner,
+                                    package,
+                                    module,
+                                    name,
+                                    version) = self;
+    write!(f,
+           "{}/{}/{}::{}_v{}",
+           owner, package, module, name, version)
   }
 }
 
@@ -23,7 +28,14 @@ pub struct StdlibFunction {
   pub f: FuncSig,
 }
 
-pub type StdlibDef = std::collections::HashMap<FunctionDesc_, StdlibFunction>;
+impl fmt::Debug for StdlibFunction {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+    f.write_str("function")
+  }
+}
+
+pub type StdlibDef =
+  std::collections::HashMap<FunctionDesc_, StdlibFunction>;
 
 pub struct Environment {
   pub functions: StdlibDef,

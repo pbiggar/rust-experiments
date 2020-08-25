@@ -1,9 +1,5 @@
 use crate::{
-  dval,
-  dval::{Dval_::*, *},
-  errors::Error::*,
-  expr::Expr,
-  runtime::*,
+  dval, dval::*, errors::Error::*, expr::Expr, runtime::*,
 };
 use im_rc as im;
 use macros::stdlibfn;

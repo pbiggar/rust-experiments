@@ -145,11 +145,18 @@ impl std::str::FromStr for FunctionDesc {
        .as_str()
        .to_string()
     }
+    fn capitalize(s: &str) -> String {
+      let mut c = s.chars();
+      match c.next() {
+        None => String::new(),
+        Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
+      }
+    }
     match RE.captures(s) {
       Some(c) if c.len() == 6 => Ok(FunctionDesc { owner: cgroup(&c, 1),
 
                                    package:  cgroup(&c, 2),
-                                   module:   cgroup(&c, 3),
+                                   module:   capitalize(&cgroup(&c, 3)),
                                    function: cgroup(&c, 4),
                                    version:
                                      cgroup(&c, 5).parse::<u32>()
@@ -158,7 +165,7 @@ impl std::str::FromStr for FunctionDesc {
         Some(c) if c.len() == 4 => Ok(FunctionDesc { owner:   "dark".to_string(),
                                      package: "stdlib".to_string(),
 
-                                     module:   cgroup(&c, 1),
+                                     module:   capitalize(&cgroup(&c, 1)),
                                      function: cgroup(&c, 2),
                                      version:
                                        cgroup(&c, 3).parse::<u32>()
@@ -198,6 +205,7 @@ pub fn stdlibfn(_attr: TokenStream,
   // add f
   let output = quote::quote! {
 
+    #[allow(non_snake_case)]
     fn #fn_name() -> (FunctionDesc_, StdlibFunction) {
         let fn_name = FunctionDesc_::FunctionDesc(
             #owner.to_string(),
