@@ -1,10 +1,11 @@
 #![feature(box_patterns)]
-extern crate proc_macro;
-extern crate syn;
 
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
 use quote;
+
+use lazy_static::lazy_static;
+use regex::Regex;
 
 use punctuated::Punctuated as Punc;
 use std::iter::FromIterator;
@@ -40,8 +41,6 @@ fn get_arguments(ifn: ItemFn) -> Vec<(String, Type)> {
          _ => panic!("invalid type"),
        })
        .collect();
-  println!("result: {:?}", x);
-  println!("input: {:?}", ifn.sig.inputs);
   x
 }
 
@@ -119,13 +118,62 @@ fn get_fn_name(ifn: ItemFn) -> Ident {
   ifn.sig.ident
 }
 
-fn get_fn_name_parts(ifn: ItemFn)
-                     -> (String, String, String, String, u32) {
-  ("dark".to_string(),
-   "stdlib".to_string(),
-   "Int".to_string(),
-   "range".to_string(),
-   0)
+struct FunctionDesc {
+  owner:    String,
+  package:  String,
+  module:   String,
+  function: String,
+  version:  u32,
+}
+
+#[derive(Debug)]
+struct FunctionDescError {}
+
+impl std::str::FromStr for FunctionDesc {
+  type Err = FunctionDescError;
+
+  fn from_str(s: &str) -> std::result::Result<Self, Self::Err> {
+    lazy_static! {
+      static ref STDLIB_RE: Regex =
+        Regex::new(r"(^[a-zA-Z0-9]+)__([a-zA-Z0-9]+)__([0-9]+)$").unwrap();
+      static ref RE : Regex =
+        Regex::new(r"(^[a-zA-Z0-9]+)__([a-zA-Z0-9]+)__([a-zA-Z0-9]+)__([a-zA-Z0-9]+)__([0-9]+)$").unwrap();
+    }
+    fn cgroup(c: &regex::Captures, i: usize) -> String {
+      c.get(i)
+       .expect(&*format!("expected capture group {}", i,))
+       .as_str()
+       .to_string()
+    }
+    match RE.captures(s) {
+      Some(c) if c.len() == 6 => Ok(FunctionDesc { owner: cgroup(&c, 1),
+
+                                   package:  cgroup(&c, 2),
+                                   module:   cgroup(&c, 3),
+                                   function: cgroup(&c, 4),
+                                   version:
+                                     cgroup(&c, 5).parse::<u32>()
+                                                  .unwrap(), }),
+      None => match STDLIB_RE.captures(s) {
+        Some(c) if c.len() == 4 => Ok(FunctionDesc { owner:   "dark".to_string(),
+                                     package: "stdlib".to_string(),
+
+                                     module:   cgroup(&c, 1),
+                                     function: cgroup(&c, 2),
+                                     version:
+                                       cgroup(&c, 3).parse::<u32>()
+                                                    .expect("expected version to be int"), }),
+
+        _ => panic!("fn name doesn't match expected pattern: {}", s),
+      },
+
+        _ => panic!("fn name doesn't match expected pattern: {}", s),
+    }
+  }
+}
+
+fn get_fn_name_parts(name: &str) -> FunctionDesc {
+  str::parse::<FunctionDesc>(name).unwrap()
 }
 
 #[proc_macro_attribute]
@@ -137,8 +185,12 @@ pub fn stdlibfn(_attr: TokenStream,
   let argument_patterns = get_argument_patterns(input.clone());
   // let _types = get_types(input.clone());
   let fn_name = get_fn_name(input.clone());
-  let (owner, package, module, name, version) =
-    get_fn_name_parts(input.clone());
+  let FunctionDesc { owner,
+                     package,
+                     module,
+                     function,
+                     version, } =
+    get_fn_name_parts(&fn_name.to_string());
   //
   // take function name in form a_b_c and convert to something to insert into stdlib
   // create structure of StdlibFunction
@@ -151,7 +203,7 @@ pub fn stdlibfn(_attr: TokenStream,
             #owner.to_string(),
             #package.to_string(),
             #module.to_string(),
-            #name.to_string(),
+            #function.to_string(),
             #version,
         );
         let fn_name2 = fn_name.clone();
