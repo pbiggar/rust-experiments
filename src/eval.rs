@@ -25,12 +25,12 @@ pub fn run(body: Expr) -> Dval {
 
 #[stdlibfn]
 fn int__range__0(start: Int, end: Int) -> Dval {
-  list(im::Vector::from_iter((*start..*end).map(|i| int(i))))
+  dlist(im::Vector::from_iter((*start..*end).map(|i| dint(i))))
 }
 
 #[stdlibfn]
 fn int__random__0() {
-  int(rand::random())
+  dint(rand::random())
 }
 
 #[stdlibfn]
@@ -44,7 +44,7 @@ fn list__map__0(members: List, l: Lambda) {
                eval(l_body.clone(), st.clone(), &environment)
              })
              .collect();
-    list(new_list)
+    dlist(new_list)
   }
 }
 
@@ -55,9 +55,9 @@ fn stdlib() -> StdlibDef {
 }
 
 fn eval(expr: Expr, symtable: SymTable, env: &Environment) -> Dval {
-  use crate::{dval::*, expr::Expr_::*, runtime::FunctionDesc_::*};
+  use crate::{dval::*, expr::Expr_::*};
   match &*(expr) {
-    IntLiteral { val } => int(*val),
+    IntLiteral { val } => dint(*val),
     Let { lhs, rhs, body } => {
       let rhs = eval(rhs.clone(), symtable.clone(), env);
       let new_symtable = symtable.update(lhs.clone(), rhs);
@@ -69,34 +69,19 @@ fn eval(expr: Expr, symtable: SymTable, env: &Environment) -> Dval {
     Lambda { params, body } => {
       Rc::new(DLambda(symtable, params.clone(), body.clone()))
     }
-    FnCall { name:
-               FunctionDesc(owner,
-                            package,
-                            module,
-                            name,
-                            version),
-             args, } => {
-      let fn_def = env.functions.get(&FunctionDesc(owner.clone(),
-                                                   package.clone(),
-                                                   module.clone(),
-                                                   name.clone(),
-                                                   *version));
+    FnCall { name, args } => {
+      let fn_def = env.functions.get(name);
 
       match fn_def {
         Option::Some(v) => {
-          let args = args.into_iter()
-                         .map(|arg| eval(arg.clone(), symtable.clone(), env))
-                         .collect();
+          let args =
+            args.into_iter()
+                .map(|arg| eval(arg.clone(), symtable.clone(), env))
+                .collect();
 
           (v.f)(args)
         }
-        Option::None => {
-          Rc::new(Dval_::DError(MissingFunction(FunctionDesc(owner.clone(),
-                                                             package.clone(),
-                                                             module.clone(),
-                                                             name.clone(),
-                                                             *version))))
-        }
+        Option::None => derror(MissingFunction(name.clone())),
       }
     }
   }

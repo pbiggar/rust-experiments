@@ -26,10 +26,14 @@ pub enum DType {
 // NamedType(String),
 }
 
-pub fn int(i: i32) -> Dval {
+pub fn derror(error: errors::Error) -> Dval {
+  Rc::new(Dval_::DError(error))
+}
+
+pub fn dint(i: i32) -> Dval {
   Rc::new(Dval_::DInt(i))
 }
 
-pub fn list(l: im::Vector<Dval>) -> Dval {
+pub fn dlist(l: im::Vector<Dval>) -> Dval {
   Rc::new(Dval_::DList(l))
 }

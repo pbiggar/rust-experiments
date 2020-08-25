@@ -32,21 +32,21 @@ unsafe impl Sync for Expr_ {}
 
 use Expr_::*;
 
-pub fn let_(lhs: &str, rhs: Expr, body: Expr) -> Expr {
+pub fn elet(lhs: &str, rhs: Expr, body: Expr) -> Expr {
   Rc::new(Let { lhs: lhs.to_string(),
                 rhs,
                 body })
 }
 
-pub fn int(val: i32) -> Expr {
+pub fn eint(val: i32) -> Expr {
   Rc::new(IntLiteral { val })
 }
 
-pub fn var(name: &str) -> Expr {
+pub fn evar(name: &str) -> Expr {
   Rc::new(Variable { name: name.to_string(), })
 }
 
-pub fn lambda(names: im::Vector<&str>, body: Expr) -> Expr {
+pub fn elambda(names: im::Vector<&str>, body: Expr) -> Expr {
   Rc::new(Lambda { params: names.iter()
                                 .map(|n| n.to_string())
                                 .collect(),
@@ -58,18 +58,27 @@ impl From<i32> for Expr_ {
     IntLiteral { val: item }
   }
 }
-
-// Stdlib function
-pub fn sfn(module: &str,
+pub fn efn(owner: &str,
+           package: &str,
+           module: &str,
            name: &str,
            version: u32,
            args: im::Vector<Expr>)
            -> Expr {
   Rc::new(FnCall { name:
-                     FunctionDesc_::FunctionDesc("dark".to_string(),
-                                                 "stdlib".to_string(),
+                     FunctionDesc_::FunctionDesc(owner.to_string(),
+                                                 package.to_string(),
                                                  module.to_string(),
                                                  name.to_string(),
                                                  version),
                    args })
+}
+
+// Stdlib function
+pub fn esfn(module: &str,
+            name: &str,
+            version: u32,
+            args: im::Vector<Expr>)
+            -> Expr {
+  efn("dark", "stdlib", module, name, version, args)
 }

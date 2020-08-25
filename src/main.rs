@@ -21,14 +21,16 @@ use expr::*;
 use im_rc as im;
 
 fn main() -> Result<(), errors::Error> {
-  let program =
-    expr::let_("range",
-               sfn("Int", "range", 0, ivec![int(0), int(100),]),
-               sfn("List",
-                   "map",
-                   0,
-                   ivec![(var("range")),
-                         lambda(ivec!["i"], int(0),),]));
+  let program = elet("range",
+                     esfn("Int",
+                          "range",
+                          0,
+                          ivec![eint(0), eint(100),]),
+                     esfn("List",
+                          "map",
+                          0,
+                          ivec![(evar("range")),
+                                elambda(ivec!["i"], eint(0),),]));
 
   let result = eval::run(program);
   match &*result {
