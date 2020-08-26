@@ -6,6 +6,7 @@ use crate::{
   runtime::*,
 };
 use im_rc as im;
+use itertools::Itertools;
 use macros::stdlibfn;
 use std::{iter::FromIterator, rc::Rc};
 
@@ -34,6 +35,11 @@ fn int__random__0() {
 }
 
 #[stdlibfn]
+fn int__eq__0(a: Int, b: Int) {
+  dbool(*a == *b)
+}
+
+#[stdlibfn]
 fn list__map__0(members: List, l: Lambda) {
   {
     let new_list =
@@ -41,23 +47,34 @@ fn list__map__0(members: List, l: Lambda) {
              .map(|_dv| {
                let environment = Environment { functions: stdlib(), };
                let st = l_symtable;
-               eval(l_body.clone(), st.clone(), &environment)
+               let result =
+                 eval(l_body.clone(), st.clone(), &environment);
+               if result.is_special() {
+                 return Err(result)
+               }
+               Ok(result)
              })
-             .collect();
-    dlist(new_list)
+             .fold_results(im::Vector::new(), |mut accum, item| {
+               accum.push_back(item);
+               accum
+             });
+    match new_list {
+      Ok(r) => dlist(r),
+      Err(special) => special,
+    }
   }
 }
 
 fn stdlib() -> StdlibDef {
-  #[allow(non_snake_case)]
   let fns = vec![int__random__0(), int__range__0(), list__map__0(),];
   fns.into_iter().collect()
 }
 
 fn eval(expr: Expr, symtable: SymTable, env: &Environment) -> Dval {
   use crate::{dval::*, expr::Expr_::*};
-  match &*(expr) {
+  match &*expr {
     IntLiteral { val } => dint(*val),
+    StringLiteral { val } => dstr(val),
     Let { lhs, rhs, body } => {
       let rhs = eval(rhs.clone(), symtable.clone(), env);
       let new_symtable = symtable.update(lhs.clone(), rhs);
@@ -69,6 +86,29 @@ fn eval(expr: Expr, symtable: SymTable, env: &Environment) -> Dval {
     Lambda { params, body } => {
       Rc::new(DLambda(symtable, params.clone(), body.clone()))
     }
+    If { cond,
+         then_body,
+         else_body, } => {
+      let result = eval(cond.clone(), symtable.clone(), env);
+      match *result {
+        DBool(true) => eval(then_body.clone(), symtable.clone(), env),
+        DBool(false) => eval(else_body.clone(), symtable, env),
+        _ => derror(InvalidType(result, dval::DType::TBool)),
+      }
+    }
+    BinOp { lhs, op, rhs } => {
+      let fn_def = env.functions.get(op);
+
+      match fn_def {
+        Option::Some(v) => {
+          let lhs = eval(lhs.clone(), symtable.clone(), env.clone());
+          let rhs = eval(rhs.clone(), symtable.clone(), env.clone());
+          (v.f)(ivec![lhs, rhs])
+        }
+        Option::None => derror(MissingFunction(op.clone())),
+      }
+    }
+
     FnCall { name, args } => {
       let fn_def = env.functions.get(name);
 

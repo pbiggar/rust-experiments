@@ -18,11 +18,24 @@ pub enum Expr_ {
     params: im::Vector<String>,
     body:   Expr,
   },
+  BinOp {
+    lhs: Expr,
+    op:  FunctionDesc_,
+    rhs: Expr,
+  },
+  If {
+    cond:      Expr,
+    then_body: Expr,
+    else_body: Expr,
+  },
   Variable {
     name: String,
   },
   IntLiteral {
     val: i32,
+  },
+  StringLiteral {
+    val: String,
   },
 }
 
@@ -38,6 +51,9 @@ pub fn elet(lhs: &str, rhs: Expr, body: Expr) -> Expr {
                 body })
 }
 
+pub fn estr(val: &str) -> Expr {
+  Rc::new(StringLiteral { val: val.to_string(), })
+}
 pub fn eint(val: i32) -> Expr {
   Rc::new(IntLiteral { val })
 }
@@ -53,11 +69,28 @@ pub fn elambda(names: im::Vector<&str>, body: Expr) -> Expr {
                    body })
 }
 
-impl From<i32> for Expr_ {
-  fn from(item: i32) -> Self {
-    IntLiteral { val: item }
-  }
+pub fn eif(cond: Expr, then_body: Expr, else_body: Expr) -> Expr {
+  Rc::new(If { cond,
+               then_body,
+               else_body })
 }
+
+pub fn ebinop(lhs: Expr,
+              module: &str,
+              op: &str,
+              version: u32,
+              rhs: Expr)
+              -> Expr {
+  Rc::new(BinOp { lhs,
+                  op:
+                    FunctionDesc_::FunctionDesc("dark".to_string(),
+                                                "stdlib".to_string(),
+                                                module.to_string(),
+                                                op.to_string(),
+                                                version),
+                  rhs })
+}
+
 pub fn efn(owner: &str,
            package: &str,
            module: &str,

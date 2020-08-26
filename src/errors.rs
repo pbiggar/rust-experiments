@@ -1,4 +1,7 @@
-use crate::{dval::Dval, runtime};
+use crate::{
+  dval::{DType, Dval},
+  runtime,
+};
 use im_rc as im;
 use std::fmt;
 
@@ -6,14 +9,20 @@ use std::fmt;
 pub enum Error {
   MissingFunction(runtime::FunctionDesc_),
   IncorrectArguments(runtime::FunctionDesc_, im::Vector<Dval>),
+  InvalidType(Dval, DType),
 }
 
 impl fmt::Display for Error {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     match self {
-      Error::MissingFunction(fun) => write!(f, "Missing function: {}", fun),
-      Error::IncorrectArguments(fun, actuals) => {
-        write!(f, "Incorrect arguments calling {}, with {:?}", fun, actuals)
+      Error::MissingFunction(fun) => {
+        write!(f, "Missing function: {}", fun)
+      }
+      Error::IncorrectArguments(fun, actuals) => write!(f,
+               "Incorrect arguments calling {}, with {:?}",
+               fun, actuals),
+      Error::InvalidType(val, ty) => {
+        write!(f, "Invalid type, expected {}, got {}", ty, val)
       }
     }
   }

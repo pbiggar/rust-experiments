@@ -155,12 +155,18 @@ impl std::str::FromStr for FunctionDesc {
         Some(f) => f.to_uppercase().collect::<String>() + c.as_str(),
       }
     }
+    fn rename(s: &str) -> String {
+      match s {
+        "eq" => "==".to_string(),
+        other => other.to_string(),
+      }
+    }
     match RE.captures(s) {
       Some(c) if c.len() == 6 => Ok(FunctionDesc { owner: cgroup(&c, 1),
 
                                    package:  cgroup(&c, 2),
                                    module:   capitalize(&cgroup(&c, 3)),
-                                   function: cgroup(&c, 4),
+                                   function: rename(&cgroup(&c, 4)),
                                    version:
                                      cgroup(&c, 5).parse::<u32>()
                                                   .unwrap(), }),
@@ -169,7 +175,7 @@ impl std::str::FromStr for FunctionDesc {
                                      package: "stdlib".to_string(),
 
                                      module:   capitalize(&cgroup(&c, 1)),
-                                     function: cgroup(&c, 2),
+                                     function: rename(&cgroup(&c, 2)),
                                      version:
                                        cgroup(&c, 3).parse::<u32>()
                                                     .expect("expected version to be int"), }),
@@ -201,11 +207,7 @@ pub fn stdlibfn(_attr: TokenStream,
                      function,
                      version, } =
     get_fn_name_parts(&fn_name.to_string());
-  //
-  // take function name in form a_b_c and convert to something to insert into stdlib
-  // create structure of StdlibFunction
-  // add types
-  // add f
+  // TODO: add types
   let output = quote::quote! {
 
     #[allow(non_snake_case)]
@@ -227,7 +229,10 @@ pub fn stdlibfn(_attr: TokenStream,
                    match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                      [ #argument_patterns ] => #body,
                      _ => {
-                       Rc::new(Dval_::DError((IncorrectArguments(fn_name2.clone(), args))))
+                       for arg in args.clone() {
+                         if (arg).is_special() { return arg.clone ()}
+                       }
+                       Rc::new(Dval_::DSpecial((Special::Error(IncorrectArguments(fn_name2.clone(), args)))))
                      }}}})},
                     })}
   };
