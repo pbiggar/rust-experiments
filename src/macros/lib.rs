@@ -158,6 +158,7 @@ impl std::str::FromStr for FunctionDesc {
     fn rename(s: &str) -> String {
       match s {
         "eq" => "==".to_string(),
+        "mod" => "%".to_string(),
         other => other.to_string(),
       }
     }

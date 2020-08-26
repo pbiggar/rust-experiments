@@ -26,7 +26,7 @@ fn main() -> Result<(), errors::Error> {
     "Int",
     "range",
     0,
-    ivec![eint(0), eint(100),],
+    ivec![eint(1), eint(100),],
   ),
                      esfn(
     "List",

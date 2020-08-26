@@ -40,13 +40,24 @@ fn int__eq__0(a: Int, b: Int) {
 }
 
 #[stdlibfn]
+fn int__mod__0(a: Int, b: Int) {
+  dint(*a % *b)
+}
+
+#[stdlibfn]
+fn int__toString__0(a: Int) {
+  dstr(&*format!("{}", *a))
+}
+
+#[stdlibfn]
 fn list__map__0(members: List, l: Lambda) {
   {
     let new_list =
       members.iter()
-             .map(|_dv| {
+             .map(|dv| {
                let environment = Environment { functions: stdlib(), };
-               let st = l_symtable;
+               let st =
+                 l_symtable.update(l_vars[0].clone(), dv.clone());
                let result =
                  eval(l_body.clone(), st.clone(), &environment);
                if result.is_special() {
@@ -66,7 +77,12 @@ fn list__map__0(members: List, l: Lambda) {
 }
 
 fn stdlib() -> StdlibDef {
-  let fns = vec![int__random__0(), int__range__0(), list__map__0(),];
+  let fns = vec![int__random__0(),
+                 int__range__0(),
+                 list__map__0(),
+                 int__eq__0(),
+                 int__mod__0(),
+                 int__toString__0()];
   fns.into_iter().collect()
 }
 
