@@ -37,20 +37,19 @@ pub enum DType {
   TList(Rc<DType>),
   TLambda,
   TBool,
-  TAny,
   NamedType(String),
 }
 
 impl fmt::Display for Dval_ {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_fmt(format_args!("{:?}", self));
+    f.write_fmt(format_args!("{:?}", self))?;
     Ok(())
   }
 }
 
 impl fmt::Display for DType {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-    f.write_fmt(format_args!("{:?}", self));
+    f.write_fmt(format_args!("{:?}", self))?;
     Ok(())
   }
 }
