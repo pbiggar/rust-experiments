@@ -1,13 +1,11 @@
 #![feature(box_patterns)]
 
+use lazy_static::lazy_static;
 use proc_macro::TokenStream;
 use proc_macro2::{Ident, Span};
-use quote;
-
-use lazy_static::lazy_static;
-use regex::Regex;
-
 use punctuated::Punctuated as Punc;
+use quote::{self, ToTokens};
+use regex::Regex;
 use std::iter::FromIterator;
 use syn::*;
 
@@ -209,7 +207,8 @@ pub fn stdlibfn(_attr: TokenStream,
                      version, } =
     get_fn_name_parts(&fn_name.to_string());
   // TODO: add types
-  let output = quote::quote! {
+  let fn_stmt: syn::Stmt = parse_quote! {
+
 
     #[allow(non_snake_case)]
     fn #fn_name() -> (FunctionDesc_, StdlibFunction) {
@@ -236,6 +235,7 @@ pub fn stdlibfn(_attr: TokenStream,
                        Rc::new(Dval_::DSpecial((Special::Error(IncorrectArguments(fn_name2.clone(), args)))))
                      }}}})},
                     })}
+
   };
-  TokenStream::from(output)
+  TokenStream::from(fn_stmt.into_token_stream())
 }

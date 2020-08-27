@@ -24,65 +24,67 @@ pub fn run(body: Expr) -> Dval {
 /*   D.list((*start..*end).map(int).collect()) */
 /* } */
 
-#[stdlibfn]
-fn int__range__0(start: Int, end: Int) -> Dval {
-  dlist(im::Vector::from_iter((*start..*end).map(|i| dint(i))))
-}
+fn stdlib() -> StdlibDef {
+  #[stdlibfn]
+  fn int__toString__0(a: Int) {
+    dstr(&*format!("{}", *a))
+  }
 
-#[stdlibfn]
-fn int__random__0() {
-  dint(rand::random())
-}
+  #[stdlibfn]
+  fn int__range__0(start: Int, end: Int) -> Dval {
+    dlist(im::Vector::from_iter((*start..*end).map(|i| dint(i))))
+  }
 
-#[stdlibfn]
-fn int__eq__0(a: Int, b: Int) {
-  dbool(*a == *b)
-}
+  #[stdlibfn]
+  fn int__random__0() {
+    dint(rand::random())
+  }
 
-#[stdlibfn]
-fn int__mod__0(a: Int, b: Int) {
-  dint(*a % *b)
-}
+  #[stdlibfn]
+  fn int__eq__0(a: Int, b: Int) {
+    dbool(*a == *b)
+  }
 
-#[stdlibfn]
-fn int__toString__0(a: Int) {
-  dstr(&*format!("{}", *a))
-}
+  #[stdlibfn]
+  fn int__mod__0(a: Int, b: Int) {
+    dint(*a % *b)
+  }
 
-#[stdlibfn]
-fn list__map__0(members: List, l: Lambda) {
-  {
-    let new_list =
-      members.iter()
-             .map(|dv| {
-               let environment = Environment { functions: stdlib(), };
-               let st =
-                 l_symtable.update(l_vars[0].clone(), dv.clone());
-               let result =
-                 eval(l_body.clone(), st.clone(), &environment);
-               if result.is_special() {
-                 return Err(result)
-               }
-               Ok(result)
-             })
-             .fold_results(im::Vector::new(), |mut accum, item| {
-               accum.push_back(item);
-               accum
-             });
-    match new_list {
-      Ok(r) => dlist(r),
-      Err(special) => special,
+  #[stdlibfn]
+  fn list__map__0(members: List, l: Lambda) {
+    {
+      let new_list =
+        members.iter()
+               .map(|dv| {
+                 let environment =
+                   Environment { functions: stdlib(), };
+                 let st =
+                   l_symtable.update(l_vars[0].clone(), dv.clone());
+                 let result =
+                   eval(l_body.clone(), st.clone(), &environment);
+                 if result.is_special() {
+                   return Err(result)
+                 }
+                 Ok(result)
+               })
+               .fold_results(im::Vector::new(), |mut accum, item| {
+                 accum.push_back(item);
+                 accum
+               });
+      match new_list {
+        Ok(r) => dlist(r),
+        Err(special) => special,
+      }
     }
   }
-}
 
-fn stdlib() -> StdlibDef {
   let fns = vec![int__random__0(),
                  int__range__0(),
                  list__map__0(),
+                 int__toString__0(),
                  int__eq__0(),
-                 int__mod__0(),
-                 int__toString__0()];
+                 int__mod__0()];
+
   fns.into_iter().collect()
 }
 
