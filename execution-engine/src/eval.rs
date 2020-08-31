@@ -8,10 +8,10 @@ use crate::{
 use im_rc as im;
 use itertools::Itertools;
 use macros::stdlibfn;
-use std::{iter::FromIterator, rc::Rc};
+use std::rc::Rc;
 
 pub struct ExecState {
-  caller: Caller,
+  pub caller: Caller,
 }
 
 pub fn run(state: &ExecState, body: Expr) -> Dval {
@@ -22,7 +22,7 @@ pub fn run(state: &ExecState, body: Expr) -> Dval {
   eval(state, body, st, &environment)
 }
 /* #[macros::darkfn] */
-/* fn int_random_0(start: int, end: int) -> List<int> { */
+/* fn int_range_0(start: int, end: int) -> List<int> { */
 // *start: the first variable
 // *end: the second variable
 /*   D.list((*start..*end).map(int).collect()) */
@@ -36,22 +36,33 @@ fn stdlib() -> StdlibDef {
 
   #[stdlibfn]
   fn int__range__0(start: Int, end: Int) -> Dval {
-    dlist(im::Vector::from_iter((*start..*end).map(|i| dint(i))))
+    let mut result = im::Vector::new();
+    let mut i = start.clone();
+    while &i < end {
+      result.push_back(dint(i.clone()));
+      i += 1;
+    }
+    dlist(result)
   }
 
   #[stdlibfn]
-  fn int__random__0() {
-    dint(rand::random())
+  fn int__random32__0() {
+    dint(ramp::Int::from(rand::random::<i32>()))
+  }
+
+  #[stdlibfn]
+  fn int__random64__0() {
+    dint(ramp::Int::from(rand::random::<i64>()))
   }
 
   #[stdlibfn]
   fn int__eq__0(a: Int, b: Int) {
-    dbool(*a == *b)
+    dbool(a == b)
   }
 
   #[stdlibfn]
   fn int__mod__0(a: Int, b: Int) {
-    dint(*a % *b)
+    dint(a % b)
   }
 
   #[stdlibfn]
@@ -84,7 +95,8 @@ fn stdlib() -> StdlibDef {
     }
   }
 
-  let fns = vec![int__random__0(),
+  let fns = vec![int__random32__0(),
+                 int__random64__0(),
                  int__range__0(),
                  list__map__0(),
                  int__toString__0(),
@@ -101,7 +113,7 @@ fn eval(state: &ExecState,
         -> Dval {
   use crate::{dval::*, expr::Expr_::*};
   match &*expr {
-    IntLiteral { id: _, val } => dint(*val),
+    IntLiteral { id: _, val } => dint(val.clone()),
     StringLiteral { id: _, val } => dstr(val),
     Blank { id } => {
       dincomplete(&Caller::Code(state.caller.to_tlid(), *id))

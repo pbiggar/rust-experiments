@@ -2,6 +2,7 @@ use im_rc as im;
 use std::rc::Rc;
 
 use crate::runtime::*;
+use ramp;
 
 #[derive(Debug)]
 pub enum Expr_ {
@@ -39,7 +40,7 @@ pub enum Expr_ {
   },
   IntLiteral {
     id:  ID,
-    val: i32,
+    val: ramp::Int,
   },
   StringLiteral {
     id:  ID,
@@ -67,8 +68,9 @@ pub fn estr(val: &str) -> Expr {
   Rc::new(StringLiteral { id:  gid(),
                           val: val.to_string(), })
 }
-pub fn eint(val: i32) -> Expr {
-  Rc::new(IntLiteral { id: gid(), val })
+pub fn eint(val: i64) -> Expr {
+  Rc::new(IntLiteral { id:  gid(),
+                       val: ramp::Int::from(val), })
 }
 
 pub fn evar(name: &str) -> Expr {

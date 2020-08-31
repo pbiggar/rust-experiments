@@ -2,10 +2,12 @@
 #![feature(box_syntax)]
 #![feature(log_syntax)]
 
-use execution_engine::{self, dval, errors, eval, expr::*, ivec};
+use execution_engine::{
+  self, dval, errors, eval, expr::*, ivec, runtime,
+};
 
 fn main() -> Result<(), errors::Error> {
-  let tlid = TLID(7);
+  let tlid = runtime::TLID::TLID(7);
   let program = elet(
                      "range",
                      esfn(
@@ -54,9 +56,11 @@ fn main() -> Result<(), errors::Error> {
   ),
   );
 
-  let result = eval::run(program);
+  let state =
+    eval::ExecState { caller: runtime::Caller::Toplevel(tlid), };
+  let result = eval::run(&state, program);
   match &*result {
-    dval::Dval_::DSpecial(dval::Special::Error(tlid, err)) => {
+    dval::Dval_::DSpecial(dval::Special::Error(_, err)) => {
       use std::io::Write;
       let stderr = &mut ::std::io::stderr();
       let errmsg = "Error writing to stderr";

@@ -4,6 +4,7 @@ use std::{fmt, rc::Rc};
 
 // use crate::{errors, expr};
 use crate::{errors, runtime};
+use ramp;
 
 // These are types that aren't real values, but are used to hold other information
 #[derive(Debug)]
@@ -15,7 +16,7 @@ pub enum Special {
 #[derive(Debug)]
 pub enum Dval_ {
   DBool(bool),
-  DInt(i32),
+  DInt(ramp::Int),
   DStr(String),
   DList(im::Vector<Dval>),
   DLambda(runtime::SymTable, im::Vector<String>, expr::Expr),
@@ -76,7 +77,7 @@ pub fn dincomplete(caller: &runtime::Caller) -> Dval {
 pub fn dbool(val: bool) -> Dval {
   Rc::new(Dval_::DBool(val))
 }
-pub fn dint(i: i32) -> Dval {
+pub fn dint(i: ramp::Int) -> Dval {
   Rc::new(Dval_::DInt(i))
 }
 
