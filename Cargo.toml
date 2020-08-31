@@ -1,0 +1,2 @@
+[workspace]
+members = ["execution-engine", "backend", "client"]

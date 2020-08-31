@@ -2,22 +2,7 @@
 #![feature(box_syntax)]
 #![feature(log_syntax)]
 
-macro_rules! ivec {
-  () => (
-      im::Vector::new()
-  );
-  ($($x:expr),+ $(,)?) => (
-      im::Vector::from(<[_]>::into_vec(box [$($x),+]))
-  );
-}
-
-mod dval;
-mod errors;
-mod eval;
-mod expr;
-mod runtime;
-use expr::*;
-use im_rc as im;
+use execution_engine::{self, dval, errors, eval, expr::*, ivec};
 
 fn main() -> Result<(), errors::Error> {
   let program = elet(
