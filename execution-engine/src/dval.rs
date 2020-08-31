@@ -8,7 +8,8 @@ use crate::{errors, runtime};
 // These are types that aren't real values, but are used to hold other information
 #[derive(Debug)]
 pub enum Special {
-  Error(errors::Error),
+  Error(runtime::Caller, errors::Error),
+  Incomplete(runtime::Caller),
 }
 
 #[derive(Debug)]
@@ -54,8 +55,22 @@ impl fmt::Display for DType {
   }
 }
 
-pub fn derror(error: errors::Error) -> Dval {
-  Rc::new(Dval_::DSpecial(Special::Error(error)))
+pub fn derror(caller: &runtime::Caller,
+              error: errors::Error)
+              -> Dval {
+  Rc::new(Dval_::DSpecial(Special::Error(*caller, error)))
+}
+
+pub fn dcode_error(caller: &runtime::Caller,
+                   id: runtime::ID,
+                   error: errors::Error)
+                   -> Dval {
+  Rc::new(Dval_::DSpecial(Special::Error(runtime::Caller::Code(caller.to_tlid(), id),
+                                         error)))
+}
+
+pub fn dincomplete(caller: &runtime::Caller) -> Dval {
+  Rc::new(Dval_::DSpecial(Special::Incomplete(*caller)))
 }
 
 pub fn dbool(val: bool) -> Dval {

@@ -10,12 +10,16 @@ use itertools::Itertools;
 use macros::stdlibfn;
 use std::{iter::FromIterator, rc::Rc};
 
-pub fn run(body: Expr) -> Dval {
+pub struct ExecState {
+  caller: Caller,
+}
+
+pub fn run(state: &ExecState, body: Expr) -> Dval {
   let environment = Environment { functions: stdlib(), };
 
   let st = im::HashMap::new();
 
-  eval(body, st, &environment)
+  eval(state, body, st, &environment)
 }
 /* #[macros::darkfn] */
 /* fn int_random_0(start: int, end: int) -> List<int> { */
@@ -60,8 +64,10 @@ fn stdlib() -> StdlibDef {
                    Environment { functions: stdlib(), };
                  let st =
                    l_symtable.update(l_vars[0].clone(), dv.clone());
-                 let result =
-                   eval(l_body.clone(), st.clone(), &environment);
+                 let result = eval(state,
+                                   l_body.clone(),
+                                   st.clone(),
+                                   &environment);
                  if result.is_special() {
                    return Err(result)
                  }
@@ -88,58 +94,94 @@ fn stdlib() -> StdlibDef {
   fns.into_iter().collect()
 }
 
-fn eval(expr: Expr, symtable: SymTable, env: &Environment) -> Dval {
+fn eval(state: &ExecState,
+        expr: Expr,
+        symtable: SymTable,
+        env: &Environment)
+        -> Dval {
   use crate::{dval::*, expr::Expr_::*};
   match &*expr {
-    IntLiteral { val } => dint(*val),
-    StringLiteral { val } => dstr(val),
-    Let { lhs, rhs, body } => {
-      let rhs = eval(rhs.clone(), symtable.clone(), env);
-      let new_symtable = symtable.update(lhs.clone(), rhs);
-      eval(body.clone(), new_symtable, env)
+    IntLiteral { id: _, val } => dint(*val),
+    StringLiteral { id: _, val } => dstr(val),
+    Blank { id } => {
+      dincomplete(&Caller::Code(state.caller.to_tlid(), *id))
     }
-    Variable { name } => {
+    Let { id: _,
+          lhs,
+          rhs,
+          body, } => {
+      let rhs = eval(state, rhs.clone(), symtable.clone(), env);
+      let new_symtable = symtable.update(lhs.clone(), rhs);
+      eval(state, body.clone(), new_symtable, env)
+    }
+    Variable { id: _, name } => {
       symtable.get(name).expect("variable does not exist").clone()
     }
-    Lambda { params, body } => {
+    Lambda { id: _,
+             params,
+             body, } => {
       Rc::new(DLambda(symtable, params.clone(), body.clone()))
     }
-    If { cond,
+    If { id,
+         cond,
          then_body,
          else_body, } => {
-      let result = eval(cond.clone(), symtable.clone(), env);
+      let result = eval(state, cond.clone(), symtable.clone(), env);
       match *result {
-        DBool(true) => eval(then_body.clone(), symtable.clone(), env),
-        DBool(false) => eval(else_body.clone(), symtable, env),
-        _ => derror(InvalidType(result, dval::DType::TBool)),
+        DBool(true) => {
+          eval(state, then_body.clone(), symtable.clone(), env)
+        }
+        DBool(false) => eval(state, else_body.clone(), symtable, env),
+        _ => dcode_error(&state.caller,
+                         *id,
+                         InvalidType(result, dval::DType::TBool)),
       }
     }
-    BinOp { lhs, op, rhs } => {
+    BinOp { id, lhs, op, rhs } => {
       let fn_def = env.functions.get(op);
 
       match fn_def {
         Option::Some(v) => {
-          let lhs = eval(lhs.clone(), symtable.clone(), env.clone());
-          let rhs = eval(rhs.clone(), symtable.clone(), env.clone());
-          (v.f)(ivec![lhs, rhs])
+          let lhs =
+            eval(state, lhs.clone(), symtable.clone(), env.clone());
+          let rhs =
+            eval(state, rhs.clone(), symtable.clone(), env.clone());
+          let state = ExecState { caller:
+                                    Caller::Code(state.caller
+                                                      .to_tlid(),
+                                                 *id),
+                                  ..*state };
+
+          (v.f)(&state, vec![lhs, rhs])
         }
-        Option::None => derror(MissingFunction(op.clone())),
+        Option::None => {
+          derror(&state.caller, MissingFunction(op.clone()))
+        }
       }
     }
 
-    FnCall { name, args } => {
+    FnCall { id, name, args } => {
       let fn_def = env.functions.get(name);
 
       match fn_def {
         Option::Some(v) => {
-          let args =
+          let args: Vec<Dval> =
             args.into_iter()
-                .map(|arg| eval(arg.clone(), symtable.clone(), env))
+                .map(|arg| {
+                  eval(&state, arg.clone(), symtable.clone(), env)
+                })
                 .collect();
+          let state = ExecState { caller:
+                                    Caller::Code(state.caller
+                                                      .to_tlid(),
+                                                 *id),
+                                  ..*state };
 
-          (v.f)(args)
+          (v.f)(&state, args)
         }
-        Option::None => derror(MissingFunction(name.clone())),
+        Option::None => {
+          derror(&state.caller, MissingFunction(name.clone()))
+        }
       }
     }
   }

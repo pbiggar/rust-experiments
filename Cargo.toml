@@ -1,2 +1,7 @@
 [workspace]
-members = ["execution-engine", "backend", "client"]
+members = [
+  "execution-engine",
+  "backend",
+  "client",
+  "ot-experiment",
+]

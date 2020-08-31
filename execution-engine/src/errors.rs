@@ -2,13 +2,12 @@ use crate::{
   dval::{DType, Dval},
   runtime,
 };
-use im_rc as im;
 use std::fmt;
 
 #[derive(Debug)]
 pub enum Error {
   MissingFunction(runtime::FunctionDesc_),
-  IncorrectArguments(runtime::FunctionDesc_, im::Vector<Dval>),
+  IncorrectArguments(runtime::FunctionDesc_, Vec<Dval>),
   InvalidType(Dval, DType),
 }
 

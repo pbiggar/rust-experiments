@@ -20,9 +20,43 @@ impl fmt::Display for FunctionDesc_ {
   }
 }
 
-pub type FuncSig = Rc<dyn Fn(im::Vector<Dval>) -> Dval>;
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
+pub enum Caller {
+  Toplevel(TLID),
+  Code(TLID, ID),
+}
+
+impl Caller {
+  pub fn to_tlid(&self) -> TLID {
+    match self {
+      Caller::Toplevel(tlid) => *tlid,
+      Caller::Code(tlid, _) => *tlid,
+    }
+  }
+}
+
+pub type FuncSig =
+  Rc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval>;
 
 pub type SymTable = im::HashMap<String, Dval>;
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
+pub enum TLID {
+  TLID(u64),
+}
+
+#[derive(Debug, Clone, Eq, PartialEq, Hash, Copy)]
+pub enum ID {
+  ID(u64),
+}
+
+pub fn gid() -> ID {
+  ID::ID(rand::random())
+}
+
+pub fn gtlid() -> TLID {
+  TLID::TLID(rand::random())
+}
 
 pub struct StdlibFunction {
   pub f: FuncSig,

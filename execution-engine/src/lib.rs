@@ -24,4 +24,5 @@ pub mod dval;
 pub mod errors;
 pub mod eval;
 pub mod expr;
+pub mod op;
 pub mod runtime;

@@ -225,14 +225,14 @@ pub fn stdlibfn(_attr: TokenStream,
            f:
              {
                Rc::new(
-                 move |args| { {
+                 move |state : &ExecState, args : Vec<Dval>| { {
                    match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                      [ #argument_patterns ] => #body,
                      _ => {
                        for arg in args.clone() {
                          if (arg).is_special() { return arg.clone ()}
                        }
-                       Rc::new(Dval_::DSpecial((Special::Error(IncorrectArguments(fn_name2.clone(), args)))))
+                       Rc::new(Dval_::DSpecial((Special::Error(state.caller, IncorrectArguments(fn_name2.clone(), args)))))
                      }}}})},
                     })}
 
