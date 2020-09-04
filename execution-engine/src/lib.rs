@@ -1,6 +1,7 @@
 #![feature(trace_macros)]
 #![feature(box_syntax)]
 #![feature(log_syntax)]
+#![feature(type_alias_impl_trait)]
 
 #[macro_export]
 macro_rules! ivec {

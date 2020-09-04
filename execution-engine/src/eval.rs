@@ -116,11 +116,11 @@ fn stdlib() -> StdlibDef {
   fns.into_iter().collect()
 }
 
-fn eval(state: &ExecState,
-        expr: Expr,
-        symtable: SymTable,
-        env: &Environment)
-        -> BoxFuture<'static, Dval> {
+fn eval<'a>(state: &'a ExecState,
+            expr: Expr,
+            symtable: SymTable,
+            env: &'a Environment)
+            -> BoxFuture<'a, Dval> {
   use crate::{dval::*, expr::Expr_::*};
   async move {
     match &*expr {

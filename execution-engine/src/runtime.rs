@@ -35,7 +35,9 @@ impl Caller {
 }
 
 pub type FuncSig =
-  Arc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval + Send>;
+  Arc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval
+        + Send
+        + Sync>;
 
 pub type SymTable = im::HashMap<String, Dval>;
 
