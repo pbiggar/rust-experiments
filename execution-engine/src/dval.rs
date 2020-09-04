@@ -1,6 +1,6 @@
 use crate::expr;
 use im_rc as im;
-use std::{fmt, rc::Rc};
+use std::{fmt, sync::Arc};
 
 // use crate::{errors, expr};
 use crate::{errors, runtime};
@@ -29,14 +29,14 @@ impl Dval_ {
   }
 }
 
-pub type Dval = Rc<Dval_>;
+pub type Dval = Arc<Dval_>;
 
 unsafe impl Send for Dval_ {}
 unsafe impl Sync for Dval_ {}
 
 #[derive(Debug)]
 pub enum DType {
-  TList(Rc<DType>),
+  TList(Arc<DType>),
   TLambda,
   TBool,
   NamedType(String),
@@ -59,32 +59,32 @@ impl fmt::Display for DType {
 pub fn derror(caller: &runtime::Caller,
               error: errors::Error)
               -> Dval {
-  Rc::new(Dval_::DSpecial(Special::Error(*caller, error)))
+  Arc::new(Dval_::DSpecial(Special::Error(*caller, error)))
 }
 
 pub fn dcode_error(caller: &runtime::Caller,
                    id: runtime::ID,
                    error: errors::Error)
                    -> Dval {
-  Rc::new(Dval_::DSpecial(Special::Error(runtime::Caller::Code(caller.to_tlid(), id),
+  Arc::new(Dval_::DSpecial(Special::Error(runtime::Caller::Code(caller.to_tlid(), id),
                                          error)))
 }
 
 pub fn dincomplete(caller: &runtime::Caller) -> Dval {
-  Rc::new(Dval_::DSpecial(Special::Incomplete(*caller)))
+  Arc::new(Dval_::DSpecial(Special::Incomplete(*caller)))
 }
 
 pub fn dbool(val: bool) -> Dval {
-  Rc::new(Dval_::DBool(val))
+  Arc::new(Dval_::DBool(val))
 }
 pub fn dint(i: ramp::Int) -> Dval {
-  Rc::new(Dval_::DInt(i))
+  Arc::new(Dval_::DInt(i))
 }
 
 pub fn dstr(val: &str) -> Dval {
-  Rc::new(Dval_::DStr(val.to_string()))
+  Arc::new(Dval_::DStr(val.to_string()))
 }
 
 pub fn dlist(l: im::Vector<Dval>) -> Dval {
-  Rc::new(Dval_::DList(l))
+  Arc::new(Dval_::DList(l))
 }

@@ -8,7 +8,7 @@ use crate::{
 use im_rc as im;
 use itertools::Itertools;
 use macros::stdlibfn;
-use std::rc::Rc;
+use std::sync::Arc;
 
 pub struct ExecState {
   pub caller: Caller,
@@ -141,7 +141,7 @@ fn eval(state: &ExecState,
     Lambda { id: _,
              params,
              body, } => {
-      Rc::new(DLambda(symtable, params.clone(), body.clone()))
+      Arc::new(DLambda(symtable, params.clone(), body.clone()))
     }
     If { id,
          cond,

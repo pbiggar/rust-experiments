@@ -1,6 +1,6 @@
 use crate::dval::Dval;
 use im_rc as im;
-use std::{fmt, rc::Rc};
+use std::{fmt, sync::Arc};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum FunctionDesc_ {
@@ -36,7 +36,7 @@ impl Caller {
 }
 
 pub type FuncSig =
-  Rc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval>;
+  Arc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval>;
 
 pub type SymTable = im::HashMap<String, Dval>;
 

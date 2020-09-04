@@ -1,5 +1,5 @@
 use im_rc as im;
-use std::rc::Rc;
+use std::sync::Arc;
 
 use crate::runtime::*;
 use ramp;
@@ -51,46 +51,46 @@ pub enum Expr_ {
   },
 }
 
-pub type Expr = Rc<Expr_>;
+pub type Expr = Arc<Expr_>;
 unsafe impl Send for Expr_ {}
 unsafe impl Sync for Expr_ {}
 
 use Expr_::*;
 
 pub fn elet(lhs: &str, rhs: Expr, body: Expr) -> Expr {
-  Rc::new(Let { id: gid(),
-                lhs: lhs.to_string(),
-                rhs,
-                body })
+  Arc::new(Let { id: gid(),
+                 lhs: lhs.to_string(),
+                 rhs,
+                 body })
 }
 
 pub fn estr(val: &str) -> Expr {
-  Rc::new(StringLiteral { id:  gid(),
-                          val: val.to_string(), })
+  Arc::new(StringLiteral { id:  gid(),
+                           val: val.to_string(), })
 }
 pub fn eint(val: i64) -> Expr {
-  Rc::new(IntLiteral { id:  gid(),
-                       val: ramp::Int::from(val), })
+  Arc::new(IntLiteral { id:  gid(),
+                        val: ramp::Int::from(val), })
 }
 
 pub fn evar(name: &str) -> Expr {
-  Rc::new(Variable { id:   gid(),
-                     name: name.to_string(), })
+  Arc::new(Variable { id:   gid(),
+                      name: name.to_string(), })
 }
 
 pub fn elambda(names: im::Vector<&str>, body: Expr) -> Expr {
-  Rc::new(Lambda { id: gid(),
-                   params: names.iter()
-                                .map(|n| n.to_string())
-                                .collect(),
-                   body })
+  Arc::new(Lambda { id: gid(),
+                    params: names.iter()
+                                 .map(|n| n.to_string())
+                                 .collect(),
+                    body })
 }
 
 pub fn eif(cond: Expr, then_body: Expr, else_body: Expr) -> Expr {
-  Rc::new(If { id: gid(),
-               cond,
-               then_body,
-               else_body })
+  Arc::new(If { id: gid(),
+                cond,
+                then_body,
+                else_body })
 }
 
 pub fn ebinop(lhs: Expr,
@@ -99,19 +99,19 @@ pub fn ebinop(lhs: Expr,
               version: u32,
               rhs: Expr)
               -> Expr {
-  Rc::new(BinOp { id: gid(),
-                  lhs,
-                  op:
-                    FunctionDesc_::FunctionDesc("dark".to_string(),
-                                                "stdlib".to_string(),
-                                                module.to_string(),
-                                                op.to_string(),
-                                                version),
-                  rhs })
+  Arc::new(BinOp { id: gid(),
+                   lhs,
+                   op:
+                     FunctionDesc_::FunctionDesc("dark".to_string(),
+                                                 "stdlib".to_string(),
+                                                 module.to_string(),
+                                                 op.to_string(),
+                                                 version),
+                   rhs })
 }
 
 pub fn eblank() -> Expr {
-  Rc::new(Blank { id: gid() })
+  Arc::new(Blank { id: gid() })
 }
 
 pub fn efn(owner: &str,
@@ -121,14 +121,14 @@ pub fn efn(owner: &str,
            version: u32,
            args: im::Vector<Expr>)
            -> Expr {
-  Rc::new(FnCall { id: gid(),
-                   name:
-                     FunctionDesc_::FunctionDesc(owner.to_string(),
-                                                 package.to_string(),
-                                                 module.to_string(),
-                                                 name.to_string(),
-                                                 version),
-                   args })
+  Arc::new(FnCall { id: gid(),
+                    name:
+                      FunctionDesc_::FunctionDesc(owner.to_string(),
+                                                  package.to_string(),
+                                                  module.to_string(),
+                                                  name.to_string(),
+                                                  version),
+                    args })
 }
 
 // Stdlib function

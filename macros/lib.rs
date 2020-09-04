@@ -224,7 +224,7 @@ pub fn stdlibfn(_attr: TokenStream,
          StdlibFunction {
            f:
              {
-               Rc::new(
+               Arc::new(
                  move |state : &ExecState, args : Vec<Dval>| { {
                    match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
                      [ #argument_patterns ] => #body,
@@ -232,7 +232,7 @@ pub fn stdlibfn(_attr: TokenStream,
                        for arg in args.clone() {
                          if (arg).is_special() { return arg.clone ()}
                        }
-                       Rc::new(Dval_::DSpecial((Special::Error(state.caller, IncorrectArguments(fn_name2.clone(), args)))))
+                       Arc::new(Dval_::DSpecial((Special::Error(state.caller, IncorrectArguments(fn_name2.clone(), args)))))
                      }}}})},
                     })}
 
