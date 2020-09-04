@@ -11,3 +11,4 @@ execution-engine = { version = "*", path = "../execution-engine" }
 im-rc = "15.0.0"
 hyper = "0.13"
 tokio = { version = "0.2", features = ["full"] }
+futures = "0.3.5"

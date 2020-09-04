@@ -1294,6 +1294,7 @@ name = "xk"
 version = "0.1.0"
 dependencies = [
  "execution-engine",
+ "futures",
  "hyper",
  "im-rc",
  "tokio",

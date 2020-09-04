@@ -10,7 +10,7 @@ use std::{convert::Infallible, net::SocketAddr};
 
 use execution_engine::{self, dval, eval, expr::*, ivec, runtime};
 
-fn program() -> Expr {
+async fn program() -> Expr {
   elet("range",
        esfn("Int", "range", 0, ivec![eint(1), eint(100),]),
        esfn("List",
@@ -59,17 +59,13 @@ async fn run_program(_req: Request<Body>)
   let tlid = runtime::TLID::TLID(7);
   let state =
     eval::ExecState { caller: runtime::Caller::Toplevel(tlid), };
-  let result = eval::run(&state, program());
-  match &*result {
-    dval::Dval_::DSpecial(dval::Special::Error(_, err)) => {
-      let msg = format!("Error: {}", err);
-      Ok(Response::new(msg.into()))
-    }
-    _ => {
-      let str = format!("{:?}", result);
-      Ok(Response::new(str.into()))
-    }
+  let result;
+  {
+    let prog = program().await;
+    result = eval::run_string(&state, prog);
   }
+  let result = result.await;
+  Ok(Response::new(result.into()))
 }
 
 #[tokio::main]

@@ -14,12 +14,21 @@ pub struct ExecState {
   pub caller: Caller,
 }
 
-pub fn run(state: &ExecState, body: Expr) -> Dval {
+pub async fn run(state: &ExecState, body: Expr) -> Dval {
   let environment = Environment { functions: stdlib(), };
 
   let st = im::HashMap::new();
 
   eval(state, body, st, &environment)
+}
+
+pub async fn run_string(state: &ExecState, body: Expr) -> String {
+  match &*run(state, body).await {
+    dval::Dval_::DSpecial(dval::Special::Error(_, err)) => {
+      format!("Error: {}", err)
+    }
+    result => format!("{:?}", result),
+  }
 }
 /* #[macros::darkfn] */
 /* fn int_range_0(start: int, end: int) -> List<int> { */
