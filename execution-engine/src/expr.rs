@@ -1,4 +1,3 @@
-use im_rc as im;
 use std::sync::Arc;
 
 use crate::runtime::*;

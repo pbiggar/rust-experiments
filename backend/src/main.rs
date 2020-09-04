@@ -8,7 +8,7 @@ use hyper::{
 };
 use std::{convert::Infallible, net::SocketAddr};
 
-use execution_engine::{self, dval, eval, expr::*, ivec, runtime};
+use execution_engine::{self, eval, expr::*, ivec, runtime};
 
 async fn program() -> Expr {
   elet("range",

@@ -5,10 +5,10 @@
 #[macro_export]
 macro_rules! ivec {
   () => (
-      im_rc::Vector::new()
+      im::Vector::new()
   );
   ($($x:expr),+ $(,)?) => (
-      im_rc::Vector::from(<[_]>::into_vec(box [$($x),+]))
+      im::Vector::from(<[_]>::into_vec(box [$($x),+]))
   );
 }
 

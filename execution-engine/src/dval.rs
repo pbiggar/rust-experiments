@@ -1,5 +1,4 @@
 use crate::expr;
-use im_rc as im;
 use std::{fmt, sync::Arc};
 
 // use crate::{errors, expr};

@@ -5,7 +5,7 @@ use crate::{
   expr::Expr,
   runtime::*,
 };
-use im_rc as im;
+use futures::future::{BoxFuture, FutureExt};
 use itertools::Itertools;
 use macros::stdlibfn;
 use std::sync::Arc;
@@ -19,7 +19,7 @@ pub async fn run(state: &ExecState, body: Expr) -> Dval {
 
   let st = im::HashMap::new();
 
-  eval(state, body, st, &environment)
+  eval(state, body, st, &environment).await
 }
 
 pub async fn run_string(state: &ExecState, body: Expr) -> String {
@@ -84,10 +84,11 @@ fn stdlib() -> StdlibDef {
                    Environment { functions: stdlib(), };
                  let st =
                    l_symtable.update(l_vars[0].clone(), dv.clone());
-                 let result = eval(state,
-                                   l_body.clone(),
-                                   st.clone(),
-                                   &environment);
+                 let result = dstr("x");
+                 // eval(state,
+                 //                   l_body.clone(),
+                 //                   st.clone(),
+                 //                   &environment).await;
                  if result.is_special() {
                    return Err(result)
                  }
@@ -119,91 +120,102 @@ fn eval(state: &ExecState,
         expr: Expr,
         symtable: SymTable,
         env: &Environment)
-        -> Dval {
+        -> BoxFuture<'static, Dval> {
   use crate::{dval::*, expr::Expr_::*};
-  match &*expr {
-    IntLiteral { id: _, val } => dint(val.clone()),
-    StringLiteral { id: _, val } => dstr(val),
-    Blank { id } => {
-      dincomplete(&Caller::Code(state.caller.to_tlid(), *id))
-    }
-    Let { id: _,
-          lhs,
-          rhs,
-          body, } => {
-      let rhs = eval(state, rhs.clone(), symtable.clone(), env);
-      let new_symtable = symtable.update(lhs.clone(), rhs);
-      eval(state, body.clone(), new_symtable, env)
-    }
-    Variable { id: _, name } => {
-      symtable.get(name).expect("variable does not exist").clone()
-    }
-    Lambda { id: _,
-             params,
-             body, } => {
-      Arc::new(DLambda(symtable, params.clone(), body.clone()))
-    }
-    If { id,
-         cond,
-         then_body,
-         else_body, } => {
-      let result = eval(state, cond.clone(), symtable.clone(), env);
-      match *result {
-        DBool(true) => {
-          eval(state, then_body.clone(), symtable.clone(), env)
-        }
-        DBool(false) => eval(state, else_body.clone(), symtable, env),
-        _ => dcode_error(&state.caller,
-                         *id,
-                         InvalidType(result, dval::DType::TBool)),
+  async move {
+    match &*expr {
+      IntLiteral { id: _, val } => dint(val.clone()),
+      StringLiteral { id: _, val } => dstr(val),
+      Blank { id } => {
+        dincomplete(&Caller::Code(state.caller.to_tlid(), *id))
       }
-    }
-    BinOp { id, lhs, op, rhs } => {
-      let fn_def = env.functions.get(op);
-
-      match fn_def {
-        Option::Some(v) => {
-          let lhs =
-            eval(state, lhs.clone(), symtable.clone(), env.clone());
-          let rhs =
-            eval(state, rhs.clone(), symtable.clone(), env.clone());
-          let state = ExecState { caller:
-                                    Caller::Code(state.caller
-                                                      .to_tlid(),
-                                                 *id),
-                                  ..*state };
-
-          (v.f)(&state, vec![lhs, rhs])
-        }
-        Option::None => {
-          derror(&state.caller, MissingFunction(op.clone()))
+      Let { id: _,
+            lhs,
+            rhs,
+            body, } => {
+        let rhs =
+          eval(state, rhs.clone(), symtable.clone(), env).await;
+        let new_symtable = symtable.update(lhs.clone(), rhs);
+        eval(state, body.clone(), new_symtable, env).await
+      }
+      Variable { id: _, name } => {
+        symtable.get(name).expect("variable does not exist").clone()
+      }
+      Lambda { id: _,
+               params,
+               body, } => {
+        Arc::new(DLambda(symtable, params.clone(), body.clone()))
+      }
+      If { id,
+           cond,
+           then_body,
+           else_body, } => {
+        let result =
+          eval(state, cond.clone(), symtable.clone(), env).await;
+        match *result {
+          DBool(true) => eval(state,
+                              then_body.clone(),
+                              symtable.clone(),
+                              env).await,
+          DBool(false) => {
+            eval(state, else_body.clone(), symtable, env).await
+          }
+          _ => dcode_error(&state.caller,
+                           *id,
+                           InvalidType(result, dval::DType::TBool)),
         }
       }
-    }
+      BinOp { id, lhs, op, rhs } => {
+        let fn_def = env.functions.get(op);
 
-    FnCall { id, name, args } => {
-      let fn_def = env.functions.get(name);
+        match fn_def {
+          Option::Some(v) => {
+            let lhs = eval(state,
+                           lhs.clone(),
+                           symtable.clone(),
+                           env.clone()).await;
+            let rhs = eval(state,
+                           rhs.clone(),
+                           symtable.clone(),
+                           env.clone()).await;
+            let state = ExecState { caller:
+                                      Caller::Code(state.caller
+                                                        .to_tlid(),
+                                                   *id),
+                                    ..*state };
 
-      match fn_def {
-        Option::Some(v) => {
-          let args: Vec<Dval> =
-            args.into_iter()
-                .map(|arg| {
-                  eval(&state, arg.clone(), symtable.clone(), env)
-                })
-                .collect();
-          let state = ExecState { caller:
-                                    Caller::Code(state.caller
-                                                      .to_tlid(),
-                                                 *id),
-                                  ..*state };
-
-          (v.f)(&state, args)
+            (v.f)(&state, vec![lhs, rhs])
+          }
+          Option::None => {
+            derror(&state.caller, MissingFunction(op.clone()))
+          }
         }
-        Option::None => {
-          derror(&state.caller, MissingFunction(name.clone()))
+      }
+
+      FnCall { id, name, args } => {
+        let fn_def = env.functions.get(name);
+
+        match fn_def {
+          Option::Some(v) => {
+            let args: Vec<Dval> = vec![];
+            // args.into_iter()
+            //     .map(|arg| {
+            //       eval(&state, arg.clone(), symtable.clone(), env)
+            //     })
+            //     .collect();
+            let state = ExecState { caller:
+                                      Caller::Code(state.caller
+                                                        .to_tlid(),
+                                                   *id),
+                                    ..*state };
+
+            (v.f)(&state, args)
+          }
+          Option::None => {
+            derror(&state.caller, MissingFunction(name.clone()))
+          }
         }
       }
     }
-  }
+  }.boxed()
 }

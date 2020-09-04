@@ -1,5 +1,4 @@
 use crate::dval::Dval;
-use im_rc as im;
 use std::{fmt, sync::Arc};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
@@ -36,7 +35,7 @@ impl Caller {
 }
 
 pub type FuncSig =
-  Arc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval>;
+  Arc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval + Send>;
 
 pub type SymTable = im::HashMap<String, Dval>;
 
@@ -74,3 +73,5 @@ pub type StdlibDef =
 pub struct Environment {
   pub functions: StdlibDef,
 }
+
+unsafe impl Send for Environment {}
