@@ -3,5 +3,4 @@ members = [
   "execution-engine",
   "backend",
   "client",
-  "ot-experiment",
 ]
