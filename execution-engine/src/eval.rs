@@ -5,7 +5,7 @@ use crate::{
   expr::Expr,
   runtime::*,
 };
-use futures::future::{BoxFuture, FutureExt};
+use futures::future::{join_all, BoxFuture, FutureExt};
 use itertools::Itertools;
 use macros::stdlibfn;
 use std::sync::Arc;
@@ -197,12 +197,14 @@ fn eval<'a>(state: &'a ExecState,
 
         match fn_def {
           Option::Some(v) => {
-            let args: Vec<Dval> = vec![];
-            // args.into_iter()
-            //     .map(|arg| {
-            //       eval(&state, arg.clone(), symtable.clone(), env)
-            //     })
-            //     .collect();
+            let symtable = &symtable;
+            let args = args.into_iter().map(|arg| async move {
+                                         eval(&state,
+                                              arg.clone(),
+                                              symtable.clone(),
+                                              env).await
+                                       });
+            let args = join_all(args).await;
             let state = ExecState { caller:
                                       Caller::Code(state.caller
                                                         .to_tlid(),
