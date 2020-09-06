@@ -55,6 +55,10 @@ async fn program() -> Expr {
                                            ivec![evar("i")])))))]))
 }
 
+async fn program2() -> Expr {
+  esfn("Int", "random64", 0, ivec![])
+}
+
 async fn run_program(_req: Request<Body>)
                      -> Result<Response<Body>, Infallible> {
   let tlid = runtime::TLID::TLID(7);
@@ -62,7 +66,7 @@ async fn run_program(_req: Request<Body>)
     eval::ExecState { caller: runtime::Caller::Toplevel(tlid), };
   let result;
   {
-    let prog = program().await;
+    let prog = program2().await;
     result = eval::run_string(&state, prog);
   }
   let result = result.await;
