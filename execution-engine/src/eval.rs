@@ -37,83 +37,124 @@ pub async fn run_string(state: &ExecState, body: Expr) -> String {
 /*   D.list((*start..*end).map(int).collect()) */
 /* } */
 
-fn stdlib() -> StdlibDef {
-  #[stdlibfn]
-  fn int__toString__0(a: Int) {
-    dstr(&*format!("{}", *a))
-  }
+fn stdlib<'a, 'b>() -> StdlibDef<'a, 'b> {
+  //   #[stdlibfn]
+  //   fn int__toString__0(a: Int) {
+  //     dstr(&*format!("{}", *a))
+  //   }
+  //
+  //   #[stdlibfn]
+  //   fn int__range__0(start: Int, end: Int) -> Dval {
+  //     let mut result = im::Vector::new();
+  //     let mut i = start.clone();
+  //     while &i < end {
+  //       result.push_back(dint(i.clone()));
+  //       i += 1;
+  //     }
+  //     dlist(result)
+  //   }
+  //
+  //   #[stdlibfn]
+  //   fn int__random32__0() {
+  //     dint(ramp::Int::from(rand::random::<i32>()))
+  //   }
+  //
+  fn int__random64__0<'x, 'y>(
+    )
+      -> (FunctionDesc_, StdlibFunction<'x, 'y>)
+  {
+    let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
+                                              "stdlib".to_string(),
+                                              "Int".to_string(),
+                                              "random64".to_string(),
+                                              0);
+    let f: FuncSig<'_, 'y> =
+      Box::new(|state: &'y ExecState, args: Vec<Dval>| {
+        async move {
+      {
+      match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice()
+      {
+        [] => dint(ramp::Int::from(rand::random::<i64>())),
+        _ => {
+              let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
+                                              "stdlib".to_string(),
+                                              "Int".to_string(),
+                                              "random64".to_string(),
+                                              0);
 
-  #[stdlibfn]
-  fn int__range__0(start: Int, end: Int) -> Dval {
-    let mut result = im::Vector::new();
-    let mut i = start.clone();
-    while &i < end {
-      result.push_back(dint(i.clone()));
-      i += 1;
-    }
-    dlist(result)
-  }
-
-  #[stdlibfn]
-  fn int__random32__0() {
-    dint(ramp::Int::from(rand::random::<i32>()))
-  }
-
-  #[stdlibfn]
-  fn int__random64__0() {
-    dint(ramp::Int::from(rand::random::<i64>()))
-  }
-
-  #[stdlibfn]
-  fn int__eq__0(a: Int, b: Int) {
-    dbool(a == b)
-  }
-
-  #[stdlibfn]
-  fn int__mod__0(a: Int, b: Int) {
-    dint(a % b)
-  }
-
-  #[stdlibfn]
-  fn list__map__0(members: List, l: Lambda) {
-    {
-      let new_list =
-        members.iter()
-               .map(|dv| {
-                 let environment =
-                   Environment { functions: stdlib(), };
-                 let st =
-                   l_symtable.update(l_vars[0].clone(), dv.clone());
-                 let result = dstr("x");
-                 // eval(state,
-                 //                   l_body.clone(),
-                 //                   st.clone(),
-                 //                   &environment).await;
-                 if result.is_special() {
-                   return Err(result)
-                 }
-                 Ok(result)
-               })
-               .fold_results(im::Vector::new(), |mut accum, item| {
-                 accum.push_back(item);
-                 accum
-               });
-      match new_list {
-        Ok(r) => dlist(r),
-        Err(special) => special,
+          for arg in args.clone() {
+            if (arg).is_special() {
+              return arg.clone()
+            }
+          }
+          Arc::new(Dval_::DSpecial(Special::Error(state.caller, IncorrectArguments(fn_name, args))))
+        }
       }
     }
+    }.boxed()
+      });
+    (fn_name, StdlibFunction { f })
   }
 
-  let fns = vec![int__random32__0(),
+  // #[stdlibfn]
+  // fn int__eq__0(a: Int, b: Int) {
+  //   dbool(a == b)
+  // }
+  //
+  // #[stdlibfn]
+  // fn int__mod__0(a: Int, b: Int) {
+  //   dint(a % b)
+  // }
+  //
+  // #[stdlibfn]
+  // fn list__map__0(members: List, l: Lambda) {
+  //   {
+  //     let new_list =
+  //       members.iter()
+  //              .map(|dv| {
+  //                let environment =
+  //                  Environment { functions: stdlib(), };
+  //                let st =
+  //                  l_symtable.update(l_vars[0].clone(), dv.clone());
+  //                let result = dstr("x");
+  //                // eval(state,
+  //                //                   l_body.clone(),
+  //                //                   st.clone(),
+  //                //                   &environment).await;
+  //                if result.is_special() {
+  //                  return Err(result)
+  //                }
+  //                Ok(result)
+  //              })
+  //              .fold_results(im::Vector::new(), |mut accum, item| {
+  //                accum.push_back(item);
+  //                accum
+  //              });
+  //     match new_list {
+  //       Ok(r) => dlist(r),
+  //       Err(special) => special,
+  //     }
+  //   }
+  // }
+
+  let fns = vec![
+    // int__random32__0(),
                  int__random64__0(),
-                 int__range__0(),
-                 list__map__0(),
-                 int__toString__0(),
-                 int__eq__0(),
-                 int__mod__0()];
+                 // int__range__0(),
+                 // list__map__0(),
+                 // int__toString__0(),
+                 // int__eq__0(),
+                 // int__mod__0()
+                 ];
 
   fns.into_iter().collect()
+}
+
+macro_rules! b {
+  ($expr:expr) => {
+    $expr
+    // async { $expr }.boxed()
+  };
 }
 
 fn eval<'a>(state: &'a ExecState,
@@ -122,12 +163,14 @@ fn eval<'a>(state: &'a ExecState,
             env: &'a Environment)
             -> BoxFuture<'a, Dval> {
   use crate::{dval::*, expr::Expr_::*};
-  async move {
+  let result = async move {
     match &*expr {
-      IntLiteral { id: _, val } => dint(val.clone()),
-      StringLiteral { id: _, val } => dstr(val),
+      IntLiteral { id: _, val } => {
+        b! { dint(val.clone()) }
+      }
+      StringLiteral { id: _, val } => b!(dstr(val)),
       Blank { id } => {
-        dincomplete(&Caller::Code(state.caller.to_tlid(), *id))
+        b!(dincomplete(&Caller::Code(state.caller.to_tlid(), *id)))
       }
       Let { id: _,
             lhs,
@@ -136,15 +179,15 @@ fn eval<'a>(state: &'a ExecState,
         let rhs =
           eval(state, rhs.clone(), symtable.clone(), env).await;
         let new_symtable = symtable.update(lhs.clone(), rhs);
-        eval(state, body.clone(), new_symtable, env).await
+        b!(eval(state, body.clone(), new_symtable, env).await)
       }
-      Variable { id: _, name } => {
-        symtable.get(name).expect("variable does not exist").clone()
-      }
+      Variable { id: _, name } => b!(symtable.get(name)
+                   .expect("variable does not exist")
+                   .clone()),
       Lambda { id: _,
                params,
                body, } => {
-        Arc::new(DLambda(symtable, params.clone(), body.clone()))
+        b!(Arc::new(DLambda(symtable, params.clone(), body.clone())))
       }
       If { id,
            cond,
@@ -153,16 +196,17 @@ fn eval<'a>(state: &'a ExecState,
         let result =
           eval(state, cond.clone(), symtable.clone(), env).await;
         match *result {
-          DBool(true) => eval(state,
-                              then_body.clone(),
-                              symtable.clone(),
-                              env).await,
+          DBool(true) => b!(eval(state,
+                                 then_body.clone(),
+                                 symtable.clone(),
+                                 env).await),
           DBool(false) => {
-            eval(state, else_body.clone(), symtable, env).await
+            b!(eval(state, else_body.clone(), symtable, env).await)
           }
-          _ => dcode_error(&state.caller,
-                           *id,
-                           InvalidType(result, dval::DType::TBool)),
+          _ => b!(dcode_error(&state.caller,
+                              *id,
+                              InvalidType(result,
+                                          dval::DType::TBool))),
         }
       }
       BinOp { id, lhs, op, rhs } => {
@@ -178,13 +222,14 @@ fn eval<'a>(state: &'a ExecState,
                            rhs.clone(),
                            symtable.clone(),
                            env.clone()).await;
-            let state = ExecState { caller:
-                                      Caller::Code(state.caller
-                                                        .to_tlid(),
-                                                   *id),
-                                    ..*state };
+            let state =
+              Box::new(ExecState { caller:
+                                     Caller::Code(state.caller
+                                                       .to_tlid(),
+                                                  *id),
+                                   ..*state });
 
-            (v.f)(&state, vec![lhs, rhs])
+            (v.f)(&state, vec![lhs, rhs]).await
           }
           Option::None => {
             derror(&state.caller, MissingFunction(op.clone()))
@@ -211,7 +256,7 @@ fn eval<'a>(state: &'a ExecState,
                                                    *id),
                                     ..*state };
 
-            (v.f)(&state, args)
+            (v.f)(&state, args).await
           }
           Option::None => {
             derror(&state.caller, MissingFunction(name.clone()))
@@ -219,5 +264,6 @@ fn eval<'a>(state: &'a ExecState,
         }
       }
     }
-  }.boxed()
+  };
+  result.boxed()
 }

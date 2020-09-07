@@ -1,5 +1,6 @@
 use crate::dval::Dval;
-use std::{fmt, sync::Arc};
+use futures::future::BoxFuture;
+use std::{fmt, future::Future, pin::Pin, sync::Arc};
 
 #[derive(Debug, Clone, Eq, PartialEq, Hash)]
 pub enum FunctionDesc_ {
@@ -34,10 +35,12 @@ impl Caller {
   }
 }
 
-pub type FuncSig =
-  Arc<dyn Fn(&crate::eval::ExecState, Vec<Dval>) -> Dval
-        + Send
-        + Sync>;
+// Two lifetimes: the execstate has to live as long as the boxed fn
+pub type FuncSig<'a, 'b> = Box<dyn Fn(&'b crate::eval::ExecState,
+                                    Vec<Dval>)
+                                    -> BoxFuture<'a, Dval>
+                                 + Send
+                                 + Sync>;
 
 pub type SymTable = im::HashMap<String, Dval>;
 
@@ -59,21 +62,21 @@ pub fn gtlid() -> TLID {
   TLID::TLID(rand::random())
 }
 
-pub struct StdlibFunction {
-  pub f: FuncSig,
+pub struct StdlibFunction<'a, 'b> {
+  pub f: FuncSig<'a, 'b>,
 }
 
-impl fmt::Debug for StdlibFunction {
+impl fmt::Debug for StdlibFunction<'_, '_> {
   fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
     f.write_str("function")
   }
 }
 
-pub type StdlibDef =
-  std::collections::HashMap<FunctionDesc_, StdlibFunction>;
+pub type StdlibDef<'a, 'b> =
+  std::collections::HashMap<FunctionDesc_, StdlibFunction<'a, 'b>>;
 
-pub struct Environment {
-  pub functions: StdlibDef,
+pub struct Environment<'a, 'b> {
+  pub functions: StdlibDef<'a, 'b>,
 }
 
-unsafe impl Send for Environment {}
+unsafe impl Send for Environment<'_, '_> {}
