@@ -54,46 +54,44 @@ fn stdlib<'a, 'b>() -> StdlibDef<'a> {
   //     dlist(result)
   //   }
   //
-  //   #[stdlibfn]
-  //   fn int__random32__0() {
-  //     dint(ramp::Int::from(rand::random::<i32>()))
-  //   }
-  //
+  #[stdlibfn]
+  fn int__random32__0() {
+    dint(ramp::Int::from(rand::random::<i32>()))
+  }
+
+  #[allow(non_snake_case)]
   fn int__random64__0<'x, 'y>(
     )
       -> (FunctionDesc_, StdlibFunction<'x>)
   {
+    let f: FuncSig<'x> =
+      Box::new(|state: &ExecState, args: Vec<Dval>| {
+        let caller = state.caller;
+        async move {
+          match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
+            [] => dint(ramp::Int::from(rand::random::<i64>())),
+            _ => {
+              for arg in args.clone() {
+                if (arg).is_special() {
+                  return arg.clone()
+                }
+              }
+              let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
+                                      "stdlib".to_string(),
+                                      "Int".to_string(),
+                                      "random64".to_string(),
+                                      0);
+
+              Arc::new(Dval_::DSpecial(Special::Error(caller, IncorrectArguments(fn_name, args))))
+            }
+          }
+        }.boxed()
+      });
     let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
                                               "stdlib".to_string(),
                                               "Int".to_string(),
                                               "random64".to_string(),
                                               0);
-    let f: FuncSig<'x> =
-      Box::new(|state: &ExecState, args: Vec<Dval>| {
-        let caller = state.caller;
-        async move {
-      {
-      match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice()
-      {
-        [] => dint(ramp::Int::from(rand::random::<i64>())),
-        _ => {
-              let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
-                                              "stdlib".to_string(),
-                                              "Int".to_string(),
-                                              "random64".to_string(),
-                                              0);
-
-          for arg in args.clone() {
-            if (arg).is_special() {
-              return arg.clone()
-            }
-          }
-          Arc::new(Dval_::DSpecial(Special::Error(caller, IncorrectArguments(fn_name, args))))
-        }
-      }
-    }
-    }.boxed()
-      });
     (fn_name, StdlibFunction { f })
   }
 
@@ -139,7 +137,7 @@ fn stdlib<'a, 'b>() -> StdlibDef<'a> {
   // }
 
   let fns = vec![
-    // int__random32__0(),
+    int__random32__0(),
                  int__random64__0(),
                  // int__range__0(),
                  // list__map__0(),

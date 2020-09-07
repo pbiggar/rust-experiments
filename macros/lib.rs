@@ -208,34 +208,38 @@ pub fn stdlibfn(_attr: TokenStream,
     get_fn_name_parts(&fn_name.to_string());
   // TODO: add types
   let fn_stmt: syn::Stmt = parse_quote! {
-
-
     #[allow(non_snake_case)]
-    fn #fn_name() -> (FunctionDesc_, StdlibFunction) {
-        let fn_name = FunctionDesc_::FunctionDesc(
-            #owner.to_string(),
-            #package.to_string(),
-            #module.to_string(),
-            #function.to_string(),
-            #version,
-        );
-        let fn_name2 = fn_name.clone();
-          (fn_name,
-         StdlibFunction {
-           f:
-             {
-               Arc::new(
-                 move |state : &ExecState, args : Vec<Dval>| { {
-                   match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
-                     [ #argument_patterns ] => #body,
-                     _ => {
-                       for arg in args.clone() {
-                         if (arg).is_special() { return arg.clone ()}
-                       }
-                       Arc::new(Dval_::DSpecial((Special::Error(state.caller, IncorrectArguments(fn_name2.clone(), args)))))
-                     }}}})},
-                    })}
-
+    fn #fn_name<'x, 'y>() -> (FunctionDesc_, StdlibFunction<'x>) {
+      let f: FuncSig<'x> =
+        Box::new(|state : &ExecState, args : Vec<Dval>| {
+          let caller = state.caller;
+          async move {
+            match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
+              [ #argument_patterns ] => #body,
+              _ => {
+                for arg in args.clone() {
+                  if (arg).is_special() { return arg.clone ()}
+                }
+                let fn_name = FunctionDesc_::FunctionDesc(
+                            #owner.to_string(),
+                            #package.to_string(),
+                            #module.to_string(),
+                            #function.to_string(),
+                            #version);
+                Arc::new(Dval_::DSpecial(Special::Error(caller, IncorrectArguments(fn_name, args))))
+              }
+            }
+          }.boxed()
+        });
+      let fn_name = FunctionDesc_::FunctionDesc(
+          #owner.to_string(),
+          #package.to_string(),
+          #module.to_string(),
+          #function.to_string(),
+          #version,
+      );
+      (fn_name, StdlibFunction { f })
+    }
   };
   TokenStream::from(fn_stmt.into_token_stream())
 }
