@@ -38,73 +38,42 @@ pub async fn run_string(state: &ExecState, body: Expr) -> String {
 /* } */
 
 fn stdlib<'a, 'b>() -> StdlibDef<'a> {
-  //   #[stdlibfn]
-  //   fn int__toString__0(a: Int) {
-  //     dstr(&*format!("{}", *a))
-  //   }
-  //
-  //   #[stdlibfn]
-  //   fn int__range__0(start: Int, end: Int) -> Dval {
-  //     let mut result = im::Vector::new();
-  //     let mut i = start.clone();
-  //     while &i < end {
-  //       result.push_back(dint(i.clone()));
-  //       i += 1;
-  //     }
-  //     dlist(result)
-  //   }
-  //
+  #[stdlibfn]
+  fn int__toString__0(a: Int) {
+    dstr(&*format!("{}", *a))
+  }
+
+  #[stdlibfn]
+  fn int__range__0(start: Int, end: Int) -> Dval {
+    let mut result = im::Vector::new();
+    let mut i = start.clone();
+    while &i < end {
+      result.push_back(dint(i.clone()));
+      i += 1;
+    }
+    dlist(result)
+  }
+
   #[stdlibfn]
   fn int__random32__0() {
     dint(ramp::Int::from(rand::random::<i32>()))
   }
 
-  #[allow(non_snake_case)]
-  fn int__random64__0<'x, 'y>(
-    )
-      -> (FunctionDesc_, StdlibFunction<'x>)
-  {
-    let f: FuncSig<'x> =
-      Box::new(|state: &ExecState, args: Vec<Dval>| {
-        let caller = state.caller;
-        async move {
-          match args.iter().map(|v| &(**v)).collect::<Vec<_>>().as_slice() {
-            [] => dint(ramp::Int::from(rand::random::<i64>())),
-            _ => {
-              for arg in args.clone() {
-                if (arg).is_special() {
-                  return arg.clone()
-                }
-              }
-              let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
-                                      "stdlib".to_string(),
-                                      "Int".to_string(),
-                                      "random64".to_string(),
-                                      0);
-
-              Arc::new(Dval_::DSpecial(Special::Error(caller, IncorrectArguments(fn_name, args))))
-            }
-          }
-        }.boxed()
-      });
-    let fn_name = FunctionDesc_::FunctionDesc("dark".to_string(),
-                                              "stdlib".to_string(),
-                                              "Int".to_string(),
-                                              "random64".to_string(),
-                                              0);
-    (fn_name, StdlibFunction { f })
+  #[stdlibfn]
+  fn int__random64__0() {
+    dint(ramp::Int::from(rand::random::<i32>()))
   }
 
-  // #[stdlibfn]
-  // fn int__eq__0(a: Int, b: Int) {
-  //   dbool(a == b)
-  // }
-  //
-  // #[stdlibfn]
-  // fn int__mod__0(a: Int, b: Int) {
-  //   dint(a % b)
-  // }
-  //
+  #[stdlibfn]
+  fn int__eq__0(a: Int, b: Int) {
+    dbool(a == b)
+  }
+
+  #[stdlibfn]
+  fn int__mod__0(a: Int, b: Int) {
+    dint(a % b)
+  }
+
   // #[stdlibfn]
   // fn list__map__0(members: List, l: Lambda) {
   //   {
@@ -136,15 +105,13 @@ fn stdlib<'a, 'b>() -> StdlibDef<'a> {
   //   }
   // }
 
-  let fns = vec![
-    int__random32__0(),
+  let fns = vec![int__random32__0(),
                  int__random64__0(),
-                 // int__range__0(),
+                 int__range__0(),
                  // list__map__0(),
-                 // int__toString__0(),
-                 // int__eq__0(),
-                 // int__mod__0()
-                 ];
+                 int__toString__0(),
+                 int__eq__0(),
+                 int__mod__0()];
 
   fns.into_iter().collect()
 }
