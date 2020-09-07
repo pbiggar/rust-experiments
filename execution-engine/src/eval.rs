@@ -115,14 +115,6 @@ fn stdlib<'a, 'b>() -> StdlibDef<'a> {
 
   fns.into_iter().collect()
 }
-
-macro_rules! b {
-  ($expr:expr) => {
-    $expr
-    // async { $expr }.boxed()
-  };
-}
-
 fn eval<'a>(state: &'a ExecState,
             expr: Expr,
             symtable: SymTable,
@@ -131,12 +123,10 @@ fn eval<'a>(state: &'a ExecState,
   use crate::{dval::*, expr::Expr_::*};
   let result = async move {
     match &*expr {
-      IntLiteral { id: _, val } => {
-        b! { dint(val.clone()) }
-      }
-      StringLiteral { id: _, val } => b!(dstr(val)),
+      IntLiteral { id: _, val } => dint(val.clone()),
+      StringLiteral { id: _, val } => dstr(val),
       Blank { id } => {
-        b!(dincomplete(&Caller::Code(state.caller.to_tlid(), *id)))
+        dincomplete(&Caller::Code(state.caller.to_tlid(), *id))
       }
       Let { id: _,
             lhs,
@@ -145,15 +135,15 @@ fn eval<'a>(state: &'a ExecState,
         let rhs =
           eval(state, rhs.clone(), symtable.clone(), env).await;
         let new_symtable = symtable.update(lhs.clone(), rhs);
-        b!(eval(state, body.clone(), new_symtable, env).await)
+        eval(state, body.clone(), new_symtable, env).await
       }
-      Variable { id: _, name } => b!(symtable.get(name)
-                   .expect("variable does not exist")
-                   .clone()),
+      Variable { id: _, name } => {
+        symtable.get(name).expect("variable does not exist").clone()
+      }
       Lambda { id: _,
                params,
                body, } => {
-        b!(Arc::new(DLambda(symtable, params.clone(), body.clone())))
+        Arc::new(DLambda(symtable, params.clone(), body.clone()))
       }
       If { id,
            cond,
@@ -162,17 +152,16 @@ fn eval<'a>(state: &'a ExecState,
         let result =
           eval(state, cond.clone(), symtable.clone(), env).await;
         match *result {
-          DBool(true) => b!(eval(state,
-                                 then_body.clone(),
-                                 symtable.clone(),
-                                 env).await),
+          DBool(true) => (eval(state,
+                               then_body.clone(),
+                               symtable.clone(),
+                               env).await),
           DBool(false) => {
-            b!(eval(state, else_body.clone(), symtable, env).await)
+            eval(state, else_body.clone(), symtable, env).await
           }
-          _ => b!(dcode_error(&state.caller,
-                              *id,
-                              InvalidType(result,
-                                          dval::DType::TBool))),
+          _ => dcode_error(&state.caller,
+                           *id,
+                           InvalidType(result, dval::DType::TBool)),
         }
       }
       BinOp { id, lhs, op, rhs } => {
