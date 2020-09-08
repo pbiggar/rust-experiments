@@ -74,36 +74,38 @@ fn stdlib<'a, 'b>() -> StdlibDef<'a> {
     dint(a % b)
   }
 
-  // #[stdlibfn]
-  // fn list__map__0(members: List, l: Lambda) {
-  //   {
-  //     let new_list =
-  //       members.iter()
-  //              .map(|dv| {
-  //                let environment =
-  //                  Environment { functions: stdlib(), };
-  //                let st =
-  //                  l_symtable.update(l_vars[0].clone(), dv.clone());
-  //                let result = dstr("x");
-  //                // eval(state,
-  //                //                   l_body.clone(),
-  //                //                   st.clone(),
-  //                //                   &environment).await;
-  //                if result.is_special() {
-  //                  return Err(result)
-  //                }
-  //                Ok(result)
-  //              })
-  //              .fold_results(im::Vector::new(), |mut accum, item| {
-  //                accum.push_back(item);
-  //                accum
-  //              });
-  //     match new_list {
-  //       Ok(r) => dlist(r),
-  //       Err(special) => special,
-  //     }
-  //   }
-  // }
+  #[stdlibfn]
+  fn list__map__0(members: List, l: Lambda) {
+    let new_list =
+      members.iter().map(|dv| async move {
+                      let environment =
+                        Environment { functions: stdlib(), };
+                      let st = l_symtable.update(l_vars[0].clone(),
+                                                 dv.clone());
+                      let expr = l_body.clone();
+                      let result = eval(state,
+                                        expr,
+                                        st.clone(),
+                                        &environment).await;
+                      if result.is_special() {
+                        return Err(result)
+                      }
+                      Ok(result)
+                    });
+    let new_list: Vec<Result<Dval, Dval>> = join_all(new_list).await;
+    let new_list =
+        new_list.iter()
+                .map(|x| *x)
+                .fold_results(im::Vector::new(),
+                              |mut accum, item| {
+                                accum.push_back(item);
+                                accum
+                              });
+    match new_list {
+      Ok(r) => dlist(r),
+      Err(special) => special,
+    }
+  }
 
   let fns = vec![int__random32__0(),
                  int__random64__0(),
